@@ -1,0 +1,30 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import CartView from "../components/islands/CartView.tsx";
+---
+
+<Layout
+  title="Carrito · Verdeo Tienda"
+  description="Revisá los productos de tu carrito y avanzá al checkout."
+>
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-10 md:pt-16 pb-16 md:pb-24">
+    <div class="flex items-end justify-between mb-10 md:mb-14">
+      <div>
+        <div class="eyebrow mb-3">Tu selección</div>
+        <h1 class="display text-[44px] md:text-[72px] leading-[0.95]">
+          Carrito
+        </h1>
+      </div>
+      <a
+        href="/productos"
+        class="hidden md:inline-flex text-sm hover:text-forest transition-colors"
+      >
+        Seguir comprando →
+      </a>
+    </div>
+
+    <CartView client:only="preact" />
+  </section>
+</Layout>

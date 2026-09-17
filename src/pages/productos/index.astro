@@ -1,0 +1,107 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ProductCard from "../../components/ProductCard.astro";
+import { getCollection } from "astro:content";
+import { CATEGORIAS } from "../../lib/site.ts";
+
+const productos = await getCollection("productos");
+
+// Filtrado por query param `cat`
+const url = new URL(Astro.request.url);
+const catParam = url.searchParams.get("cat") ?? "todas";
+const categoriaActiva = CATEGORIAS.find((c) => c.id === catParam)?.id ?? null;
+
+const productosFiltrados = categoriaActiva
+  ? productos.filter((p) => p.data.categoria === categoriaActiva)
+  : productos;
+
+const categoriasConCount = CATEGORIAS.map((c) => ({
+  ...c,
+  count: productos.filter((p) => p.data.categoria === c.id).length,
+}));
+---
+
+<Layout
+  title="Catálogo · Verdeo Tienda"
+  description="Catálogo completo de velas de soja, difusores, jabones artesanales y textiles de algodón orgánico."
+>
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-10 md:pt-16 pb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-end">
+      <div class="lg:col-span-7">
+        <div class="eyebrow mb-3">Catálogo</div>
+        <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+          {categoriaActiva
+            ? CATEGORIAS.find((c) => c.id === categoriaActiva)?.nombre
+            : "Todos los productos"}
+        </h1>
+        <p class="mt-4 text-muted max-w-[52ch]">
+          {categoriaActiva
+            ? CATEGORIAS.find((c) => c.id === categoriaActiva)?.descripcion
+            : "Velas, difusores, jabones y textiles. Elaborados a mano con ingredientes nobles."}
+        </p>
+      </div>
+      <div class="lg:col-span-5 text-sm text-muted lg:text-right">
+        Mostrando <span class="text-ink font-medium tabular-nums">{productosFiltrados.length}</span> productos
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros -->
+  <nav
+    class="mx-auto max-w-[1400px] px-5 md:px-10 pb-10 md:pb-14"
+    aria-label="Filtrar por categoría"
+  >
+    <ul class="flex flex-wrap gap-2 md:gap-3">
+      <li>
+        <a
+          href="/productos"
+          class={`inline-flex items-center px-4 py-2 rounded-full text-sm border transition-colors duration-300 ${
+            !categoriaActiva
+              ? "bg-forest text-cream border-forest"
+              : "border-[var(--color-hairline)] hover:border-ink/40"
+          }`}
+        >
+          Todas ({productos.length})
+        </a>
+      </li>
+      {
+        categoriasConCount.map((c) => (
+          <li>
+            <a
+              href={`/productos?cat=${c.id}`}
+              class={`inline-flex items-center px-4 py-2 rounded-full text-sm border transition-colors duration-300 ${
+                categoriaActiva === c.id
+                  ? "bg-forest text-cream border-forest"
+                  : "border-[var(--color-hairline)] hover:border-ink/40"
+              }`}
+            >
+              {c.nombre} ({c.count})
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  <!-- Grilla de productos -->
+  <section
+    class="mx-auto max-w-[1400px] px-5 md:px-10 pb-20 md:pb-32"
+    aria-label="Listado de productos"
+  >
+    {productosFiltrados.length === 0 ? (
+      <div class="text-center py-20">
+        <div class="display text-[32px] md:text-[44px] mb-3">No hay productos en esta categoría.</div>
+        <p class="text-muted mb-6">Probá con otra categoría o volvé al catálogo completo.</p>
+        <a href="/productos" class="btn-primary">Ver todos</a>
+      </div>
+    ) : (
+      <ul class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 md:gap-x-7 gap-y-10 md:gap-y-14">
+        {productosFiltrados.map((p) => (
+          <li>
+            <ProductCard producto={p} />
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+</Layout>

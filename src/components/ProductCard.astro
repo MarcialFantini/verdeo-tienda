@@ -1,0 +1,65 @@
+---
+import { formatPrecio } from "../lib/site.ts";
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  producto: CollectionEntry<"productos">;
+  /** Variante de tamaño. "default" para grilla normal, "compact" para mosaicos chicos. */
+  size?: "default" | "compact" | "wide";
+}
+
+const { producto, size = "default" } = Astro.props;
+const { nombre, precio, imagen, imagen_alt, descripcion_corta, categoria } =
+  producto.data;
+
+// Fallback deterministic via Picsum si Unsplash falla
+const fallbackImg = `https://picsum.photos/seed/${producto.id}/1200/1500`;
+
+const aspectClass =
+  size === "wide"
+    ? "aspect-[16/10]"
+    : size === "compact"
+      ? "aspect-[3/4]"
+      : "aspect-[4/5]";
+---
+
+<a
+  href={`/productos/${producto.id}`}
+  class={`product-tile group block reveal ${size === "wide" ? "md:col-span-2" : ""}`}
+  aria-label={`Ver ${nombre}`}
+>
+  <div class="bezel-outer">
+    <div class="bezel-inner">
+      <div class={`relative ${aspectClass} overflow-hidden bg-linen`}>
+        <img
+          src={imagen}
+          alt={imagen_alt}
+          loading="lazy"
+          decoding="async"
+          class="w-full h-full object-cover transition-transform duration-[1200ms] ease-[var(--ease-fluid)] group-hover:scale-[1.04]"
+          onerror={`this.onerror=null;this.src='${fallbackImg}';`}
+        />
+        <span
+          class="absolute top-3 left-3 inline-flex items-center px-3 py-1 rounded-full bg-paper/90 backdrop-blur-sm text-[10px] uppercase tracking-[0.18em] text-ink/80"
+          aria-hidden="true"
+        >
+          {categoria}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-2 mt-4 flex items-start justify-between gap-4">
+    <div>
+      <h3 class="display text-[20px] md:text-[22px] leading-[1.1] text-ink">
+        {nombre}
+      </h3>
+      <p class="mt-1.5 text-sm text-muted line-clamp-2 max-w-[42ch]">
+        {descripcion_corta}
+      </p>
+    </div>
+    <div class="text-right shrink-0 pt-1">
+      <div class="font-medium tabular-nums text-ink">{formatPrecio(precio)}</div>
+    </div>
+  </div>
+</a>

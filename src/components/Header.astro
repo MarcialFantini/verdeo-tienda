@@ -1,0 +1,125 @@
+---
+import CartBadge from "./islands/CartBadge.tsx";
+---
+
+<header
+  class="sticky top-0 z-40 backdrop-blur-md bg-paper/85 border-b border-[var(--color-hairline)]"
+>
+  <div
+    class="mx-auto max-w-[1400px] px-5 md:px-10 py-3 md:py-4 flex items-center justify-between gap-6"
+  >
+    <a href="/" class="flex items-center gap-2 group" aria-label="Ir al inicio">
+      <span
+        class="inline-block w-8 h-8 rounded-full bg-forest flex items-center justify-center transition-transform duration-500 ease-[var(--ease-fluid)] group-hover:rotate-12"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 24 24" class="w-4 h-4 text-cream" fill="currentColor">
+          <path
+            d="M12 2c-1.5 2-3 4.5-3 7 0 1.5.5 3 1.5 4-2.5 1-4.5 3-4.5 6 0 4 4 7 6 7s6-3 6-7c0-3-2-5-4.5-6 1-1 1.5-2.5 1.5-4 0-2.5-1.5-5-3-7z"
+            opacity=".85"
+          ></path>
+        </svg>
+      </span>
+      <span class="flex flex-col leading-none">
+        <span class="display text-[22px] md:text-[24px] text-ink">Verdeo</span>
+        <span
+          class="text-[10px] uppercase tracking-[0.22em] text-muted mt-1 hidden sm:block"
+          >Tienda consciente</span
+        >
+      </span>
+    </a>
+
+    <nav class="hidden md:flex items-center gap-7" aria-label="Navegación principal">
+      <a
+        href="/productos"
+        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        >Catálogo</a
+      >
+      <a
+        href="/productos?cat=velas"
+        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        >Velas</a
+      >
+      <a
+        href="/productos?cat=difusores"
+        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        >Difusores</a
+      >
+      <a
+        href="/productos?cat=jabones"
+        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        >Jabones</a
+      >
+      <a
+        href="/productos?cat=textiles"
+        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        >Textiles</a
+      >
+      <a
+        href="/#nosotras"
+        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        >Nosotras</a
+      >
+    </nav>
+
+    <div class="flex items-center gap-2 md:gap-3">
+      <a
+        href="/carrito"
+        class="relative inline-flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border border-[var(--color-hairline)] hover:border-ink/40 transition-colors duration-300"
+        aria-label="Ver carrito"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          class="w-[18px] h-[18px] text-ink"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path
+            d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L21 8H6"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+          <circle cx="9" cy="21" r="1.2" fill="currentColor"></circle>
+          <circle cx="18" cy="21" r="1.2" fill="currentColor"></circle>
+        </svg>
+        <span class="hidden sm:inline text-sm">Carrito</span>
+        <CartBadge client:load />
+      </a>
+
+      <!-- Menú mobile -->
+      <details
+        class="md:hidden relative"
+        aria-label="Menú de navegación móvil"
+      >
+        <summary
+          class="list-none cursor-pointer p-2 rounded-full border border-[var(--color-hairline)] flex items-center justify-center"
+          aria-label="Abrir menú"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path d="M3 7h18M3 12h18M3 17h18" stroke-linecap="round"></path>
+          </svg>
+        </summary>
+        <nav
+          class="absolute right-0 top-[calc(100%+8px)] min-w-[200px] bg-cream border border-[var(--color-hairline)] rounded-2xl p-4 flex flex-col gap-3 shadow-lg z-50"
+          aria-label="Navegación móvil"
+        >
+          <a href="/productos" class="text-sm">Catálogo completo</a>
+          <a href="/productos?cat=velas" class="text-sm">Velas</a>
+          <a href="/productos?cat=difusores" class="text-sm">Difusores</a>
+          <a href="/productos?cat=jabones" class="text-sm">Jabones</a>
+          <a href="/productos?cat=textiles" class="text-sm">Textiles</a>
+          <hr class="hairline" />
+          <a href="/#nosotras" class="text-sm">Nosotras</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

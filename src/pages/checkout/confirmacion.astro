@@ -1,0 +1,15 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import OrderSummary from "../../components/islands/OrderSummary.tsx";
+---
+
+<Layout
+  title="Pedido confirmado · Verdeo Tienda"
+  description="Tu pedido en Verdeo Tienda fue confirmado."
+>
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-10 md:pt-16 pb-16 md:pb-24">
+    <OrderSummary client:only="preact" />
+  </section>
+</Layout>

@@ -1,0 +1,344 @@
+/* ============================================================
+   Verdeo Tienda — Design System
+   Editorial warm-organic, paleta cremosa con verdes (override
+   del "ban" de cream: el brief explícitamente pide "verdes
+   y cremosos").
+   ============================================================ */
+
+@import "tailwindcss";
+
+/* Tipografías via Google Fonts (preconnect + swap) */
+@layer base {
+  :root {
+    --font-display:
+      "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype",
+      Palatino, Georgia, serif;
+    --font-sans:
+      "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono:
+      ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    /* Tokens de marca */
+    --color-paper: #f1ecdf; /* fondo principal (cremoso cálido) */
+    --color-cream: #faf6ec; /* superficie elevada (cards) */
+    --color-linen: #e8dfcb; /* divisor / borde sutil */
+    --color-ink: #1e2a1b; /* texto principal (espresso-green) */
+    --color-forest: #2d4a2a; /* primario verde profundo */
+    --color-forest-dark: #1e2f1b; /* hover/pressed */
+    --color-moss: #6f7d5a; /* verde apagado, decorativo */
+    --color-amber: #c77e3d; /* acento cálido (UN solo acento) */
+    --color-clay: #b16b3a; /* acento secundario de soporte */
+    --color-muted: #6f6657; /* texto secundario */
+    --color-muted-soft: #8e8472;
+    --color-hairline: rgba(30, 42, 27, 0.12);
+    --color-overlay: rgba(30, 42, 27, 0.04);
+
+    /* Curvas de easing cinematográficas */
+    --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* Mapa Tailwind v4 (genera utilities tipo bg-paper, text-ink, etc.) */
+@theme {
+  --color-paper: #f1ecdf;
+  --color-cream: #faf6ec;
+  --color-linen: #e8dfcb;
+  --color-ink: #1e2a1b;
+  --color-forest: #2d4a2a;
+  --color-forest-dark: #1e2f1b;
+  --color-moss: #6f7d5a;
+  --color-amber: #c77e3d;
+  --color-clay: #b16b3a;
+  --color-muted: #6f6657;
+  --color-muted-soft: #8e8472;
+  --color-hairline: rgba(30, 42, 27, 0.12);
+
+  --font-display: "Cormorant Garamond", "Iowan Old Style",
+    "Palatino Linotype", Palatino, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    min-height: 100dvh;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+    letter-spacing: -0.015em;
+    font-weight: 500;
+  }
+
+  /* Imagenes responsive por defecto */
+  img,
+  picture,
+  svg,
+  video {
+    max-width: 100%;
+    display: block;
+  }
+
+  /* Focus visible consistente en todo el sitio */
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Selection color */
+  ::selection {
+    background: var(--color-amber);
+    color: var(--color-cream);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Display utilitario */
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    font-weight: 500;
+    line-height: 0.98;
+  }
+
+  .display-italic {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* Eyebrow / micro-tag */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  /* Botón primario */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.95rem 1.6rem;
+    background: var(--color-forest);
+    color: var(--color-cream);
+    border-radius: 9999px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.005em;
+    border: 1px solid var(--color-forest);
+    transition:
+      transform 400ms var(--ease-fluid),
+      background 400ms var(--ease-fluid),
+      color 400ms var(--ease-fluid);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary:hover {
+    background: var(--color-forest-dark);
+    border-color: var(--color-forest-dark);
+  }
+  .btn-primary:active {
+    transform: scale(0.985);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Botón ghost / outline */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1.5rem;
+    background: transparent;
+    color: var(--color-ink);
+    border-radius: 9999px;
+    border: 1px solid var(--color-hairline);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition:
+      background 350ms var(--ease-fluid),
+      border-color 350ms var(--ease-fluid);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover {
+    background: rgba(30, 42, 27, 0.04);
+    border-color: rgba(30, 42, 27, 0.32);
+  }
+  .btn-ghost:active {
+    transform: scale(0.985);
+  }
+
+  /* Input base */
+  .field {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    background: var(--color-cream);
+    border: 1px solid var(--color-hairline);
+    border-radius: 10px;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    transition:
+      border-color 250ms var(--ease-fluid),
+      background 250ms var(--ease-fluid);
+    font-family: var(--font-sans);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--color-forest);
+    background: var(--color-paper);
+  }
+  .field::placeholder {
+    color: var(--color-muted-soft);
+  }
+
+  /* Label sobre input */
+  .label {
+    display: block;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-muted);
+    margin-bottom: 0.55rem;
+    font-weight: 500;
+  }
+
+  /* Hairline / divisor editorial */
+  .hairline {
+    border: 0;
+    border-top: 1px solid var(--color-hairline);
+    margin: 0;
+  }
+
+  /* "Bisel doble" para cards premium */
+  .bezel-outer {
+    background: rgba(30, 42, 27, 0.04);
+    border: 1px solid var(--color-hairline);
+    border-radius: 24px;
+    padding: 6px;
+  }
+  .bezel-inner {
+    background: var(--color-cream);
+    border-radius: calc(24px - 6px);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  /* Producto card */
+  .product-tile {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 500ms var(--ease-fluid);
+  }
+  .product-tile:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Cuantity stepper */
+  .qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-hairline);
+    border-radius: 9999px;
+    overflow: hidden;
+    background: var(--color-cream);
+  }
+  .qty-stepper button {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    border: 0;
+    font-size: 1rem;
+    transition: background 200ms var(--ease-fluid);
+  }
+  .qty-stepper button:hover {
+    background: rgba(30, 42, 27, 0.06);
+  }
+  .qty-stepper button:disabled {
+    color: var(--color-muted-soft);
+    cursor: not-allowed;
+  }
+  .qty-stepper span {
+    min-width: 32px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+  }
+}
+
+@layer utilities {
+  /* Grano sutil, fijo y no interactivo */
+  .grain::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.035;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* Reveal simple con IntersectionObserver */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 800ms var(--ease-soft),
+      transform 800ms var(--ease-soft);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
