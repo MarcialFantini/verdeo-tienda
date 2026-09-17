@@ -95,7 +95,7 @@ const categoriasConCount = CATEGORIAS.map((c) => ({
         <a href="/productos" class="btn-primary">Ver todos</a>
       </div>
     ) : (
-      <ul class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 md:gap-x-7 gap-y-10 md:gap-y-14">
+      <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 md:gap-x-7 gap-y-10 md:gap-y-14">
         {productosFiltrados.map((p) => (
           <li>
             <ProductCard producto={p} />

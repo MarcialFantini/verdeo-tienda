@@ -160,7 +160,7 @@ export default function CheckoutForm() {
                 required
               />
               {errors.nombre && (
-                <p id="err-nombre" class="mt-1.5 text-xs text-clay">{errors.nombre}</p>
+                <p id="err-nombre" class="mt-1.5 text-xs text-amber-deep">{errors.nombre}</p>
               )}
             </div>
             <div>
@@ -178,7 +178,7 @@ export default function CheckoutForm() {
                 required
               />
               {errors.email && (
-                <p id="err-email" class="mt-1.5 text-xs text-clay">{errors.email}</p>
+                <p id="err-email" class="mt-1.5 text-xs text-amber-deep">{errors.email}</p>
               )}
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function CheckoutForm() {
                 aria-describedby={errors.telefono ? "err-tel" : undefined}
               />
               {errors.telefono && (
-                <p id="err-tel" class="mt-1.5 text-xs text-clay">{errors.telefono}</p>
+                <p id="err-tel" class="mt-1.5 text-xs text-amber-deep">{errors.telefono}</p>
               )}
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function CheckoutForm() {
                 required
               />
               {errors.direccion && (
-                <p id="err-dir" class="mt-1.5 text-xs text-clay">{errors.direccion}</p>
+                <p id="err-dir" class="mt-1.5 text-xs text-amber-deep">{errors.direccion}</p>
               )}
             </div>
             <div class="md:col-span-3">
@@ -237,7 +237,7 @@ export default function CheckoutForm() {
                 required
               />
               {errors.ciudad && (
-                <p id="err-ciu" class="mt-1.5 text-xs text-clay">{errors.ciudad}</p>
+                <p id="err-ciu" class="mt-1.5 text-xs text-amber-deep">{errors.ciudad}</p>
               )}
             </div>
             <div class="md:col-span-2">
@@ -256,7 +256,7 @@ export default function CheckoutForm() {
                 required
               />
               {errors.codigoPostal && (
-                <p id="err-cp" class="mt-1.5 text-xs text-clay">{errors.codigoPostal}</p>
+                <p id="err-cp" class="mt-1.5 text-xs text-amber-deep">{errors.codigoPostal}</p>
               )}
             </div>
             <div class="md:col-span-1">

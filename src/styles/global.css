@@ -1,13 +1,25 @@
 /* ============================================================
    Verdeo Tienda — Design System
-   Editorial warm-organic, paleta cremosa con verdes (override
-   del "ban" de cream: el brief explícitamente pide "verdes
-   y cremosos").
+   Orgánico, cálido, honesto. Paleta de 4 colores del brief
+   (forest + paper + ink + amber) con neutros de soporte.
+   Sin "eco-bro" mint, sin emoji de hoja, sin brass premium-DTC.
    ============================================================ */
 
 @import "tailwindcss";
 
-/* Tipografías via Google Fonts (preconnect + swap) */
+/* Self-hosted tipografías via @fontsource — sin Google Fonts <link> */
+@import "@fontsource/cormorant-garamond/400.css";
+@import "@fontsource/cormorant-garamond/500.css";
+@import "@fontsource/cormorant-garamond/600.css";
+@import "@fontsource/cormorant-garamond/400-italic.css";
+@import "@fontsource/cormorant-garamond/500-italic.css";
+@import "@fontsource/plus-jakarta-sans/300.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+
+/* Tipografías (referenciadas vía CSS vars) */
 @layer base {
   :root {
     --font-display:
@@ -19,16 +31,15 @@
     --font-mono:
       ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-    /* Tokens de marca */
-    --color-paper: #f1ecdf; /* fondo principal (cremoso cálido) */
-    --color-cream: #faf6ec; /* superficie elevada (cards) */
+    /* Tokens de marca — Verdeo Tienda */
+    --color-forest: #2d4a2a; /* verde profundo: CTAs, foco, links */
+    --color-forest-dark: #1e2f1b; /* hover/pressed */
+    --color-paper: #f1ecdf; /* fondo cálido (papel) */
+    --color-cream: #faf6ec; /* superficie elevada (cards, inputs) */
     --color-linen: #e8dfcb; /* divisor / borde sutil */
     --color-ink: #1e2a1b; /* texto principal (espresso-green) */
-    --color-forest: #2d4a2a; /* primario verde profundo */
-    --color-forest-dark: #1e2f1b; /* hover/pressed */
-    --color-moss: #6f7d5a; /* verde apagado, decorativo */
-    --color-amber: #c77e3d; /* acento cálido (UN solo acento) */
-    --color-clay: #b16b3a; /* acento secundario de soporte */
+    --color-amber: #c28e3f; /* UN solo acento cálido */
+    --color-amber-deep: #8a5a22; /* ámbar oscuro: errores honestos */
     --color-muted: #6f6657; /* texto secundario */
     --color-muted-soft: #8e8472;
     --color-hairline: rgba(30, 42, 27, 0.12);
@@ -42,24 +53,33 @@
 
 /* Mapa Tailwind v4 (genera utilities tipo bg-paper, text-ink, etc.) */
 @theme {
+  --color-forest: #2d4a2a;
+  --color-forest-dark: #1e2f1b;
   --color-paper: #f1ecdf;
   --color-cream: #faf6ec;
   --color-linen: #e8dfcb;
   --color-ink: #1e2a1b;
-  --color-forest: #2d4a2a;
-  --color-forest-dark: #1e2f1b;
-  --color-moss: #6f7d5a;
-  --color-amber: #c77e3d;
-  --color-clay: #b16b3a;
+  --color-amber: #c28e3f;
+  --color-amber-deep: #8a5a22;
   --color-muted: #6f6657;
   --color-muted-soft: #8e8472;
   --color-hairline: rgba(30, 42, 27, 0.12);
+
+  /* Aliases con prefijo `verdeo-` (mismas paletas) para consumidores explícitos */
+  --color-verdeo-forest: #2d4a2a;
+  --color-verdeo-paper: #f1ecdf;
+  --color-verdeo-ink: #1e2a1b;
+  --color-verdeo-amber: #c28e3f;
 
   --font-display: "Cormorant Garamond", "Iowan Old Style",
     "Palatino Linotype", Palatino, Georgia, serif;
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Aliases explícitos `font-serif` / `font-sans` para el brief */
+  --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype",
+    Palatino, Georgia, serif;
 }
 
 @layer base {
@@ -121,9 +141,25 @@
       scroll-behavior: auto !important;
     }
   }
+
+  /* Reduced transparency — fallback sólido para glassmorphism del header */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-header {
+      background: var(--color-paper) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+  }
 }
 
 @layer components {
+  /* Header con glassmorphism — fallback sólido en reduced-transparency */
+  .glass-header {
+    background: color-mix(in srgb, var(--color-paper) 85%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+  }
+
   /* Display utilitario */
   .display {
     font-family: var(--font-display);
@@ -268,12 +304,14 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
 
-  /* Producto card */
+  /* Producto card — borde 1px en ámbar al 20%, sombra sutil en hover */
   .product-tile {
     display: block;
     text-decoration: none;
     color: inherit;
-    transition: transform 500ms var(--ease-fluid);
+    transition:
+      transform 500ms var(--ease-fluid),
+      box-shadow 500ms var(--ease-fluid);
   }
   .product-tile:hover {
     transform: translateY(-2px);

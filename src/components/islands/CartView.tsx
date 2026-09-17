@@ -96,7 +96,7 @@ export default function CartView() {
                     <button
                       type="button"
                       onClick={() => removeFromCart(it.slug)}
-                      class="text-xs text-muted hover:text-clay transition-colors duration-300 inline-flex items-center gap-1"
+                      class="text-xs text-muted hover:text-amber-deep transition-colors duration-300 inline-flex items-center gap-1"
                       aria-label={`Quitar ${it.nombre} del carrito`}
                     >
                       <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -128,7 +128,7 @@ export default function CartView() {
             onClick={() => {
               if (confirm("¿Vaciar todo el carrito?")) clearCart();
             }}
-            class="text-xs text-muted hover:text-clay transition-colors duration-300"
+            class="text-xs text-muted hover:text-amber-deep transition-colors duration-300"
           >
             Vaciar carrito
           </button>
