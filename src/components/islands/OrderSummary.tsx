@@ -9,6 +9,9 @@ interface Order {
   subtotal: number;
   envio: number;
   total: number;
+  /** Cupón aplicado (opcional, sólo si el usuario tipeó uno válido). */
+  descuento?: number;
+  cupon?: string | null;
   cliente: { nombre: string; email: string; telefono?: string };
   envio_direccion: {
     direccion: string;
@@ -169,6 +172,16 @@ export default function OrderSummary() {
                 <dt class="text-muted">Subtotal</dt>
                 <dd class="tabular-nums">{formatPrecio(order.subtotal)}</dd>
               </div>
+              {order.descuento && order.descuento > 0 && (
+                <div class="flex items-center justify-between">
+                  <dt class="text-muted">
+                    Descuento {order.cupon ? <span class="text-ink/70">({order.cupon})</span> : null}
+                  </dt>
+                  <dd class="tabular-nums text-forest">
+                    − {formatPrecio(order.descuento)}
+                  </dd>
+                </div>
+              )}
               <div class="flex items-center justify-between">
                 <dt class="text-muted">Envío</dt>
                 <dd class="tabular-nums">

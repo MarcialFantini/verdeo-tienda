@@ -4,8 +4,10 @@ export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 import ProductCard from "../../components/ProductCard.astro";
 import AddToCart from "../../components/islands/AddToCart.tsx";
+import Reviews from "../../components/islands/Reviews.tsx";
 import { getCollection, type CollectionEntry } from "astro:content";
 import { CATEGORIAS, formatPrecio } from "../../lib/site.ts";
+import { getReviewsSeed } from "../../lib/reviews.ts";
 
 export async function getStaticPaths() {
   const productos = await getCollection("productos");
@@ -40,11 +42,61 @@ const {
 const fallbackImg = `https://picsum.photos/seed/${producto.id}/1200/1500`;
 const categoriaLabel = CATEGORIAS.find((c) => c.id === categoria)?.nombre ?? categoria;
 
+/**
+ * Microcopy cálido estilo Verdeo — taglets que aparecen debajo del nombre.
+ * Los tres primeros son de marca (siempre ciertos), el cuarto se deriva
+ * de la categoría del producto.
+ */
+const MICROCOPY_MARCA = [
+  "Hecho a mano",
+  "Empaque compostable",
+  "Origen: Argentina",
+];
+const MICROCOPY_POR_CATEGORIA: Record<string, string> = {
+  velas: "Cera de soja",
+  difusores: "Varillas de ratán",
+  jabones: "Saponificación en frío",
+  textiles: "Algodón orgánico",
+};
+const microcopyTags = [
+  ...MICROCOPY_MARCA,
+  MICROCOPY_POR_CATEGORIA[categoria] ?? "Ingredientes nobles",
+];
+
+/**
+ * Galería: la imagen del producto es la principal. Cuando sólo hay una
+ * (caso normal del catálogo) mostramos la imagen grande + 2 thumbnails
+ * derivados con picsum (semillas determinísticas a partir del slug)
+ * que ofician de "otros ángulos / vista de ambiente". Si el día de
+ * mañana el frontmatter admite más imágenes, este layout ya las
+ * soporta como `galeria`.
+ */
+const galeria: Array<{ src: string; alt: string; thumb: string }> = [
+  {
+    src: imagen,
+    alt: imagen_alt,
+    thumb: `${imagen.split("?")[0]}?w=240&h=300&fit=crop&q=70&auto=format`,
+  },
+  {
+    src: `https://picsum.photos/seed/${producto.id}-ambiente/1200/1500`,
+    alt: `${nombre} en ambiente`,
+    thumb: `https://picsum.photos/seed/${producto.id}-ambiente/240/300`,
+  },
+  {
+    src: `https://picsum.photos/seed/${producto.id}-detalle/1200/1500`,
+    alt: `Detalle de ${nombre.toLowerCase()}`,
+    thumb: `https://picsum.photos/seed/${producto.id}-detalle/240/300`,
+  },
+];
+
 // Productos relacionados (misma categoría, excluir el actual)
 const todos = await getCollection("productos");
 const relacionados = todos
   .filter((p) => p.data.categoria === categoria && p.id !== producto.id)
   .slice(0, 4);
+
+// Reseñas seed para pasarlas al island (server-render).
+const reviewsSeed = getReviewsSeed(producto.id);
 ---
 
 <Layout
@@ -74,35 +126,98 @@ const relacionados = todos
   <!-- FICHA -->
   <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-16 md:pb-24">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
-      <!-- Imagen -->
+      <!-- Galería -->
       <div class="lg:col-span-7">
         <div class="bezel-outer">
           <div class="bezel-inner overflow-hidden">
             <div class="aspect-[4/5] bg-linen relative">
-              <img
-                src={imagen}
-                alt={imagen_alt}
-                class="w-full h-full object-cover"
-                loading="eager"
-                fetchpriority="high"
-                onerror={`this.onerror=null;this.src='${fallbackImg}';`}
-              />
+              {galeria.map((g, i) => (
+                <img
+                  src={g.src}
+                  alt={g.alt}
+                  class={`w-full h-full object-cover absolute inset-0 transition-opacity duration-500 ${i === 0 ? "opacity-100" : "opacity-0"}`}
+                  data-galeria-img={i}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchpriority={i === 0 ? "high" : "auto"}
+                  onerror={`this.onerror=null;this.src='${fallbackImg}';`}
+                />
+              ))}
             </div>
           </div>
         </div>
+
+        <!-- Thumbnails (galería > 1 imagen) -->
+        {galeria.length > 1 && (
+          <ul
+            class="mt-4 grid grid-cols-3 gap-3 md:gap-4"
+            aria-label="Vistas alternativas del producto"
+            data-galeria-thumbs
+            data-target={producto.id}
+          >
+            {galeria.map((g, i) => (
+              <li>
+                <button
+                  type="button"
+                  class={`bezel-outer block w-full transition-all duration-300 ${i === 0 ? "ring-1 ring-[var(--color-amber)]" : ""}`}
+                  data-galeria-thumb={i}
+                  aria-label={`Ver vista ${i + 1} de ${galeria.length}`}
+                  aria-pressed={i === 0 ? "true" : "false"}
+                >
+                  <span class="bezel-inner block overflow-hidden">
+                    <span class="block aspect-[4/5] bg-linen">
+                      <img
+                        src={g.thumb}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        class="w-full h-full object-cover"
+                        onerror={`this.onerror=null;this.src='https://picsum.photos/seed/${producto.id}-thumb${i}/240/300';`}
+                      />
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <!-- Datos -->
       <div class="lg:col-span-5 flex flex-col">
-        <div class="flex items-center gap-3 mb-3">
+        <div class="flex items-center gap-3 mb-3 flex-wrap">
           <span class="eyebrow">{categoriaLabel}</span>
-          <span class="text-muted text-xs">·</span>
-          <span class="text-xs text-muted">{sku}</span>
+          <span class="text-muted text-xs" aria-hidden="true">·</span>
+          <span class="text-xs text-muted font-mono">{sku}</span>
         </div>
         <h1 class="display text-[36px] md:text-[56px] leading-[0.98]">
           {nombre}
         </h1>
-        <p class="mt-4 text-lg text-muted leading-relaxed max-w-[44ch]">
+
+        <!-- Microcopy taglets — cálido, honesto, sin latón premium -->
+        <ul
+          class="mt-5 flex flex-wrap gap-2"
+          aria-label="Características del producto"
+        >
+          {microcopyTags.map((tag) => (
+            <li>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cream border border-[var(--color-hairline)] text-xs text-ink/80">
+                <svg
+                  viewBox="0 0 24 24"
+                  class="w-3.5 h-3.5 text-forest"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12l5 5 9-11" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                {tag}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <p class="mt-5 text-lg text-muted leading-relaxed max-w-[44ch]">
           {descripcion_corta}
         </p>
 
@@ -186,6 +301,14 @@ const relacionados = todos
     </div>
   </section>
 
+  <!-- RESEÑAS -->
+  <Reviews
+    client:visible
+    slug={producto.id}
+    nombreProducto={nombre}
+    seed={reviewsSeed}
+  />
+
   <!-- RELACIONADOS -->
   {relacionados.length > 0 && (
     <section class="mx-auto max-w-[1400px] px-5 md:px-10 py-16 md:py-24 border-t border-[var(--color-hairline)]">
@@ -210,3 +333,33 @@ const relacionados = todos
     </section>
   )}
 </Layout>
+
+<!-- Galería: script inline para thumbs (vanilla, sin Alpine) -->
+<script is:inline>
+  (function () {
+    if (typeof window === "undefined") return;
+    const groups = document.querySelectorAll("[data-galeria-thumbs]");
+    groups.forEach((ul) => {
+      const buttons = ul.querySelectorAll("[data-galeria-thumb]");
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.getAttribute("data-galeria-thumb"));
+          const section = btn.closest("section");
+          if (!section) return;
+          const imgs = section.querySelectorAll("[data-galeria-img]");
+          imgs.forEach((img, i) => {
+            img.classList.toggle("opacity-100", i === idx);
+            img.classList.toggle("opacity-0", i !== idx);
+          });
+          buttons.forEach((b, i) => {
+            const wrap = b.closest("button");
+            if (!wrap) return;
+            wrap.classList.toggle("ring-1", i === idx);
+            wrap.classList.toggle("ring-[var(--color-amber)]", i === idx);
+            b.setAttribute("aria-pressed", i === idx ? "true" : "false");
+          });
+        });
+      });
+    });
+  })();
+</script>

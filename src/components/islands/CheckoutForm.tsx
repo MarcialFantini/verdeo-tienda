@@ -3,6 +3,12 @@ import { useState } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { $cart, $cartSubtotal, clearCart } from "../../lib/cart";
 import { formatPrecio, calcularEnvio, generarNumeroPedido } from "../../lib/site";
+import {
+  aplicarCoupon,
+  findCoupon,
+  totalConCoupon,
+  type Coupon,
+} from "../../lib/coupons";
 
 interface FormState {
   nombre: string;
@@ -53,8 +59,18 @@ function validate(f: FormState): Errors {
 export default function CheckoutForm() {
   const items = useStore($cart);
   const subtotal = useStore($cartSubtotal);
-  const envio = calcularEnvio(subtotal);
-  const total = subtotal + envio;
+
+  // Cupón — vive en estado del componente (no se persiste en localStorage, como pide el brief).
+  const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponMsg, setCouponMsg] = useState<{ tipo: "ok" | "err"; texto: string } | null>(null);
+
+  // Totales (con cupón aplicado).
+  const envioBase = calcularEnvio(subtotal);
+  const breakdown = aplicarCoupon(subtotal, envioBase, coupon);
+  const envio = breakdown.envio;
+  const descuento = breakdown.descuento;
+  const total = totalConCoupon(subtotal, envio, descuento);
 
   const [form, setForm] = useState<FormState>(initial);
   const [errors, setErrors] = useState<Errors>({});
@@ -77,6 +93,29 @@ export default function CheckoutForm() {
     setErrors(validate(form));
   };
 
+  const handleApplyCoupon = (e: Event) => {
+    e.preventDefault();
+    const raw = couponInput.trim();
+    if (!raw) {
+      setCouponMsg({ tipo: "err", texto: "Ingresá un código primero." });
+      return;
+    }
+    const found = findCoupon(raw);
+    if (!found) {
+      setCouponMsg({ tipo: "err", texto: "Cupón no válido o expirado." });
+      return;
+    }
+    setCoupon(found);
+    setCouponMsg({ tipo: "ok", texto: found.description });
+    setCouponInput("");
+  };
+
+  const handleRemoveCoupon = () => {
+    setCoupon(null);
+    setCouponMsg(null);
+    setCouponInput("");
+  };
+
   const handleSubmit = (e: Event) => {
     e.preventDefault();
     const errs = validate(form);
@@ -95,6 +134,8 @@ export default function CheckoutForm() {
       items,
       subtotal,
       envio,
+      descuento,
+      cupon: coupon ? coupon.code : null,
       total,
       cliente: {
         nombre: form.nombre,
@@ -367,17 +408,120 @@ export default function CheckoutForm() {
               ))}
             </ul>
             <hr class="hairline" />
-            <dl class="flex flex-col gap-2 mt-4 text-sm">
+
+            {/* Cupón de descuento */}
+            <div class="mt-5">
+              {coupon ? (
+                <div class="flex items-start justify-between gap-3 p-3.5 bg-cream/70 rounded-2xl border border-[var(--color-hairline)]">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-forest text-cream text-[10px] uppercase tracking-[0.18em] font-medium">
+                        Cupón
+                      </span>
+                      <span class="font-mono text-sm font-medium text-ink">
+                        {coupon.code}
+                      </span>
+                    </div>
+                    <p class="mt-1.5 text-xs text-muted leading-relaxed">
+                      {couponMsg?.texto ?? coupon.description}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    class="shrink-0 text-xs text-muted hover:text-amber-deep transition-colors duration-300 inline-flex items-center gap-1"
+                    aria-label={`Quitar cupón ${coupon.code}`}
+                  >
+                    <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                      <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    Quitar
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyCoupon}>
+                  <label for="coupon" class="label">Código de cupón</label>
+                  <div class="flex items-stretch gap-2">
+                    <input
+                      id="coupon"
+                      type="text"
+                      class="field flex-1 font-mono uppercase"
+                      placeholder="VERDEO10"
+                      value={couponInput}
+                      onInput={(e) => {
+                        const v = (e.currentTarget as HTMLInputElement).value;
+                        setCouponInput(v);
+                        if (couponMsg?.tipo === "err") setCouponMsg(null);
+                      }}
+                      autoComplete="off"
+                      spellcheck={false}
+                      aria-describedby={couponMsg ? "coupon-msg" : undefined}
+                      aria-invalid={couponMsg?.tipo === "err"}
+                    />
+                    <button
+                      type="submit"
+                      class="btn-ghost px-5"
+                      disabled={!couponInput.trim()}
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                  {couponMsg && (
+                    <p
+                      id="coupon-msg"
+                      class={`mt-2 text-xs ${couponMsg.tipo === "err" ? "text-amber-deep" : "text-forest"}`}
+                      role={couponMsg.tipo === "err" ? "alert" : "status"}
+                    >
+                      {couponMsg.texto}
+                    </p>
+                  )}
+                </form>
+              )}
+            </div>
+
+            <dl class="flex flex-col gap-2 mt-5 text-sm">
               <div class="flex items-center justify-between">
                 <dt class="text-muted">Subtotal</dt>
                 <dd class="tabular-nums">{formatPrecio(subtotal)}</dd>
               </div>
+              {descuento > 0 && (
+                <div class="flex items-center justify-between">
+                  <dt class="text-muted">
+                    Descuento{" "}
+                    {coupon?.kind === "percent" && coupon.percent ? (
+                      <span class="text-ink/70">({coupon.percent}%)</span>
+                    ) : null}
+                  </dt>
+                  <dd class="tabular-nums text-forest">
+                    − {formatPrecio(descuento)}
+                  </dd>
+                </div>
+              )}
+              {coupon && coupon.kind === "free_shipping" && envioBase > 0 && (
+                <div class="flex items-center justify-between text-xs">
+                  <dt class="text-muted line-through">
+                    Envío antes: {formatPrecio(envioBase)}
+                  </dt>
+                  <dd class="tabular-nums text-muted line-through">
+                    {formatPrecio(envioBase)}
+                  </dd>
+                </div>
+              )}
               <div class="flex items-center justify-between">
                 <dt class="text-muted">Envío</dt>
                 <dd class="tabular-nums">
-                  {envio === 0 ? <span class="text-forest">Gratis</span> : formatPrecio(envio)}
+                  {envio === 0 ? (
+                    <span class="text-forest">Gratis</span>
+                  ) : (
+                    formatPrecio(envio)
+                  )}
                 </dd>
               </div>
+              {subtotal > 0 && envioBase > 0 && !coupon && (
+                <div class="text-xs text-muted-soft -mt-1">
+                  Envío gratis a partir de {formatPrecio(25000)}.
+                </div>
+              )}
               <hr class="hairline my-2" />
               <div class="flex items-center justify-between text-base">
                 <dt class="font-medium">Total</dt>
