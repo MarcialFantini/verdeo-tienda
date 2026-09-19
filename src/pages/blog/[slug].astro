@@ -1,0 +1,95 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { getCollection, render, type CollectionEntry } from "astro:content";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("novedades");
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<"novedades">;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const fechaFmt = new Date(post.data.fecha).toLocaleDateString("es-AR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/blog", label: "Novedades" },
+  { href: `/blog/${post.id}`, label: post.data.titulo, current: true },
+];
+---
+
+<Layout
+  title={`${post.data.titulo} · Verdeo`}
+  description={post.data.descripcion}
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <article class="mx-auto max-w-[1100px] px-5 md:px-10 pt-8 pb-16 md:pb-24">
+    <header class="mb-10 md:mb-14">
+      <div class="eyebrow mb-3">{post.data.eyebrow}</div>
+      <h1 class="display text-[44px] md:text-[64px] leading-[0.98]">
+        {post.data.titulo}
+      </h1>
+      <p class="mt-5 text-lg text-muted max-w-[64ch] leading-relaxed">
+        {post.data.descripcion}
+      </p>
+      <div class="mt-5 text-xs text-muted-soft">
+        Por <span class="text-ink">{post.data.autor}</span> · {fechaFmt}
+      </div>
+    </header>
+
+    <figure class="bezel-outer mb-12 md:mb-16">
+      <div class="bezel-inner overflow-hidden">
+        <div class="aspect-[16/9] bg-linen">
+          <img
+            src={post.data.imagen}
+            alt={post.data.imagen_alt}
+            loading="eager"
+            fetchpriority="high"
+            class="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+    </figure>
+
+    <div class="prose-verdeo text-ink leading-relaxed text-base md:text-lg max-w-[68ch] mx-auto">
+      <Content />
+    </div>
+
+    {post.data.tags.length > 0 && (
+      <div class="mt-12 md:mt-16 max-w-[68ch] mx-auto border-t border-[var(--color-hairline)] pt-6">
+        <div class="flex flex-wrap gap-2">
+          {post.data.tags.map((t) => (
+            <span class="inline-flex items-center px-3 py-1 rounded-full bg-cream border border-[var(--color-hairline)] text-xs text-ink/80">
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div class="mt-12 md:mt-16 text-center">
+      <a href="/blog" class="btn-ghost">
+        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M19 12H5M11 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        Volver a Novedades
+      </a>
+    </div>
+  </article>
+</Layout>

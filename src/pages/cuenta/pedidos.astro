@@ -1,0 +1,35 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import AccountOrders from "../../components/islands/AccountOrders.tsx";
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/cuenta/pedidos", label: "Mis pedidos" },
+];
+---
+
+<Layout
+  title="Mis pedidos · Verdeo"
+  description="Buscá tus pedidos por email o por número."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-12">
+    <div class="eyebrow mb-3">Tu cuenta · pedidos</div>
+    <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+      Mis pedidos.
+    </h1>
+    <p class="mt-5 text-muted max-w-[64ch] leading-relaxed">
+      Esta tienda es demo: no hay backend. Buscamos tus pedidos por email o por
+      número VRT-NNNNNN en este navegador (sólo se ven los pedidos confirmados
+      desde este dispositivo).
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 pb-24 md:pb-32">
+    <AccountOrders client:only="preact" />
+  </section>
+</Layout>

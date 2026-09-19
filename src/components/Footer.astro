@@ -4,8 +4,8 @@ import { SITE } from "../lib/site.ts";
 
 <footer class="mt-32 border-t border-[var(--color-hairline)] bg-cream/40">
   <div class="mx-auto max-w-[1400px] px-5 md:px-10 py-16 md:py-24">
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10">
-      <div class="md:col-span-5">
+    <div class="grid grid-cols-2 md:grid-cols-12 gap-10 md:gap-10">
+      <div class="col-span-2 md:col-span-5">
         <div class="display text-[44px] md:text-[64px] leading-[0.95]">
           Verdeo
         </div>
@@ -37,29 +37,40 @@ import { SITE } from "../lib/site.ts";
         </div>
       </div>
 
-      <div class="md:col-span-3">
+      <div class="md:col-span-2">
         <div class="eyebrow mb-4">Tienda</div>
         <ul class="flex flex-col gap-2 text-sm">
           <li><a href="/productos" class="hover:text-forest transition-colors">Catálogo</a></li>
-          <li><a href="/productos?cat=velas" class="hover:text-forest transition-colors">Velas</a></li>
-          <li><a href="/productos?cat=difusores" class="hover:text-forest transition-colors">Difusores</a></li>
-          <li><a href="/productos?cat=jabones" class="hover:text-forest transition-colors">Jabones</a></li>
-          <li><a href="/productos?cat=textiles" class="hover:text-forest transition-colors">Textiles</a></li>
+          <li><a href="/categoria/velas" class="hover:text-forest transition-colors">Velas</a></li>
+          <li><a href="/categoria/difusores" class="hover:text-forest transition-colors">Difusores</a></li>
+          <li><a href="/categoria/jabones" class="hover:text-forest transition-colors">Jabones</a></li>
+          <li><a href="/categoria/textiles" class="hover:text-forest transition-colors">Textiles</a></li>
+          <li><a href="/categoria/bundles" class="hover:text-forest transition-colors">Bundles</a></li>
         </ul>
       </div>
 
-      <div class="md:col-span-4">
-        <div class="eyebrow mb-4">Contacto</div>
+      <div class="md:col-span-2">
+        <div class="eyebrow mb-4">Editorial</div>
         <ul class="flex flex-col gap-2 text-sm">
-          <li>
-            <a href={`mailto:${SITE.email}`} class="hover:text-forest transition-colors">{SITE.email}</a>
-          </li>
-          <li class="text-muted">{SITE.telefono}</li>
-          <li class="text-muted mt-2">Lunes a sábados · 10 a 19 h</li>
+          <li><a href="/blog" class="hover:text-forest transition-colors">Novedades</a></li>
+          <li><a href="/sobre-verdeo" class="hover:text-forest transition-colors">Sobre Verdeo</a></li>
+          <li><a href="/cuidados" class="hover:text-forest transition-colors">Cuidados</a></li>
+        </ul>
+      </div>
+
+      <div class="md:col-span-3">
+        <div class="eyebrow mb-4">Ayuda & cuenta</div>
+        <ul class="flex flex-col gap-2 text-sm">
+          <li><a href="/envios" class="hover:text-forest transition-colors">Envíos y devoluciones</a></li>
+          <li><a href="/preguntas" class="hover:text-forest transition-colors">Preguntas frecuentes</a></li>
+          <li><a href="/cuenta/favoritos" class="hover:text-forest transition-colors">Mi lista de favoritos</a></li>
+          <li><a href="/cuenta/pedidos" class="hover:text-forest transition-colors">Mis pedidos</a></li>
         </ul>
 
         <div class="mt-6 text-xs text-muted-soft leading-relaxed max-w-[34ch]">
-          Envíos a todo el país. Despachamos en 48 h hábiles desde CABA.
+          <a href={`mailto:${SITE.email}`} class="hover:text-forest transition-colors">{SITE.email}</a><br />
+          {SITE.telefono}<br />
+          Lunes a sábados · 10 a 19 h
         </div>
       </div>
     </div>

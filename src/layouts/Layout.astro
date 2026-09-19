@@ -7,6 +7,10 @@ import { SITE } from "../lib/site.ts";
 interface Props {
   title?: string;
   description?: string;
+  /** Imagen OG absoluta o ruta pública. Default: /og-image.svg */
+  ogImage?: string;
+  /** Tipo OG para esta página. Default: "website" */
+  ogType?: "website" | "product" | "article";
   /** Añade clase opcional al <main> para páginas especiales. */
   mainClass?: string;
 }
@@ -14,6 +18,8 @@ interface Props {
 const {
   title = `${SITE.nombre} · ${SITE.tagline}`,
   description = "Tienda online de velas de soja, difusores, jabones artesanales y textiles de algodón orgánico. Productos sustentables para el hogar.",
+  ogImage = "/og-image.svg",
+  ogType = "website",
   mainClass = "",
 } = Astro.props;
 ---
@@ -27,10 +33,23 @@ const {
     <meta name="theme-color" content="#f1ecdf" />
     <meta name="generator" content={Astro.generator} />
 
+    <!-- Canonical: evita contenido duplicado entre paths con/sin slash, query strings, etc. -->
+    <link rel="canonical" href={Astro.url.href} />
+
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content={SITE.nombre} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 

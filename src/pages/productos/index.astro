@@ -1,107 +1,100 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import ProductCard from "../../components/ProductCard.astro";
+import CatalogBrowser from "../../components/islands/CatalogBrowser.tsx";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
 import { getCollection } from "astro:content";
 import { CATEGORIAS } from "../../lib/site.ts";
 
 const productos = await getCollection("productos");
 
-// Filtrado por query param `cat`
+// Filtrado por query param `cat` en SSR (mantenido de la versión previa)
 const url = new URL(Astro.request.url);
 const catParam = url.searchParams.get("cat") ?? "todas";
 const categoriaActiva = CATEGORIAS.find((c) => c.id === catParam)?.id ?? null;
 
-const productosFiltrados = categoriaActiva
-  ? productos.filter((p) => p.data.categoria === categoriaActiva)
-  : productos;
+const categoriaLabel = (id: string) => {
+  const found = CATEGORIAS.find((c) => c.id === id);
+  return found?.nombre ?? id;
+};
 
-const categoriasConCount = CATEGORIAS.map((c) => ({
-  ...c,
-  count: productos.filter((p) => p.data.categoria === c.id).length,
+const productosSerializables = productos.map((p) => ({
+  slug: p.id,
+  nombre: p.data.nombre,
+  categoria: p.data.categoria,
+  categoriaId: p.data.categoria,
+  precio: p.data.precio,
+  descripcion_corta: p.data.descripcion_corta,
+  imagen: p.data.imagen,
+  imagen_alt: p.data.imagen_alt,
+  rating_promedio: p.data.rating_promedio,
+  rating_cantidad: p.data.rating_cantidad ?? 0,
+  ventas_simuladas: p.data.ventas_simuladas ?? 0,
+  fecha_agregado: p.data.fecha_agregado,
+  aromas: p.data.aromas,
+  ingredientes_tags: p.data.ingredientes_tags,
+  materiales: p.data.materiales,
+  stock: p.data.stock,
+  stock_bajo: p.data.stock_bajo ?? 3,
+  es_bundle: p.data.es_bundle ?? false,
 }));
+
+const crumbs = categoriaActiva
+  ? [
+      { href: "/", label: "Inicio" },
+      { href: "/productos", label: "Catálogo" },
+      { href: `/categoria/${categoriaActiva}`, label: categoriaLabel(categoriaActiva) },
+    ]
+  : [
+      { href: "/", label: "Inicio" },
+      { href: "/productos", label: "Catálogo", current: true },
+    ];
 ---
 
 <Layout
   title="Catálogo · Verdeo Tienda"
   description="Catálogo completo de velas de soja, difusores, jabones artesanales y textiles de algodón orgánico."
 >
-  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-10 md:pt-16 pb-10">
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-10">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-end">
       <div class="lg:col-span-7">
         <div class="eyebrow mb-3">Catálogo</div>
         <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
           {categoriaActiva
-            ? CATEGORIAS.find((c) => c.id === categoriaActiva)?.nombre
+            ? categoriaLabel(categoriaActiva)
             : "Todos los productos"}
         </h1>
         <p class="mt-4 text-muted max-w-[52ch]">
           {categoriaActiva
-            ? CATEGORIAS.find((c) => c.id === categoriaActiva)?.descripcion
+            ? (CATEGORIAS.find((c) => c.id === categoriaActiva)?.introLargo ?? "")
             : "Velas, difusores, jabones y textiles. Elaborados a mano con ingredientes nobles."}
         </p>
       </div>
       <div class="lg:col-span-5 text-sm text-muted lg:text-right">
-        Mostrando <span class="text-ink font-medium tabular-nums">{productosFiltrados.length}</span> productos
+        {categoriaActiva && (
+          <a
+            href="/productos"
+            class="inline-flex items-center hover:text-forest transition-colors"
+          >
+            Ver todas las categorías
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </a>
+        )}
       </div>
     </div>
   </section>
 
-  <!-- Filtros -->
-  <nav
-    class="mx-auto max-w-[1400px] px-5 md:px-10 pb-10 md:pb-14"
-    aria-label="Filtrar por categoría"
-  >
-    <ul class="flex flex-wrap gap-2 md:gap-3">
-      <li>
-        <a
-          href="/productos"
-          class={`inline-flex items-center px-4 py-2 rounded-full text-sm border transition-colors duration-300 ${
-            !categoriaActiva
-              ? "bg-forest text-cream border-forest"
-              : "border-[var(--color-hairline)] hover:border-ink/40"
-          }`}
-        >
-          Todas ({productos.length})
-        </a>
-      </li>
-      {
-        categoriasConCount.map((c) => (
-          <li>
-            <a
-              href={`/productos?cat=${c.id}`}
-              class={`inline-flex items-center px-4 py-2 rounded-full text-sm border transition-colors duration-300 ${
-                categoriaActiva === c.id
-                  ? "bg-forest text-cream border-forest"
-                  : "border-[var(--color-hairline)] hover:border-ink/40"
-              }`}
-            >
-              {c.nombre} ({c.count})
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </nav>
-
-  <!-- Grilla de productos -->
   <section
     class="mx-auto max-w-[1400px] px-5 md:px-10 pb-20 md:pb-32"
     aria-label="Listado de productos"
   >
-    {productosFiltrados.length === 0 ? (
-      <div class="text-center py-20">
-        <div class="display text-[32px] md:text-[44px] mb-3">No hay productos en esta categoría.</div>
-        <p class="text-muted mb-6">Probá con otra categoría o volvé al catálogo completo.</p>
-        <a href="/productos" class="btn-primary">Ver todos</a>
-      </div>
-    ) : (
-      <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 md:gap-x-7 gap-y-10 md:gap-y-14">
-        {productosFiltrados.map((p) => (
-          <li>
-            <ProductCard producto={p} />
-          </li>
-        ))}
-      </ul>
-    )}
+    <CatalogBrowser
+      client:only="preact"
+      productos={productosSerializables}
+      categoriaInicial={categoriaActiva}
+    />
   </section>
 </Layout>

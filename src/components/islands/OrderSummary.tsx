@@ -1,45 +1,64 @@
 /** @jsxImportSource preact */
 import { useEffect, useState } from "preact/hooks";
 import { formatPrecio } from "../../lib/site";
+import type { OrderRecord } from "../../lib/orders";
 
-interface Order {
-  numero: string;
-  fecha: string;
-  items: Array<{ slug: string; nombre: string; precio: number; cantidad: number; imagen: string }>;
-  subtotal: number;
-  envio: number;
-  total: number;
-  /** Cupón aplicado (opcional, sólo si el usuario tipeó uno válido). */
-  descuento?: number;
-  cupon?: string | null;
-  cliente: { nombre: string; email: string; telefono?: string };
-  envio_direccion: {
-    direccion: string;
-    ciudad: string;
-    provincia: string;
-    codigoPostal: string;
-  };
-  metodoPago: "efectivo" | "transferencia";
-  notas?: string;
+const STORAGE_KEY = "verdeo:orders:v1";
+const LEGACY_KEY = "verdeo:lastOrder:v1";
+
+function loadOrder(numeroParam: string | null): OrderRecord | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw) as OrderRecord[];
+      const found =
+        (numeroParam && arr.find((o) => o.numero.toUpperCase() === numeroParam.toUpperCase())) ||
+        arr[0];
+      return found ?? null;
+    }
+  } catch {
+    /* ignore */
+  }
+  // Fallback a la versión vieja single-order.
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (raw) return JSON.parse(raw) as OrderRecord;
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
-const STORAGE_KEY = "verdeo:lastOrder:v1";
+function buildIcs(order: OrderRecord): string {
+  // Estimación de entrega: 5 días desde la fecha del pedido.
+  const start = new Date(order.fecha);
+  const end = new Date(start.getTime() + 1000 * 60 * 60 * 24 * 5);
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Verdeo Tienda//Pedido//ES",
+    "BEGIN:VEVENT",
+    `UID:${order.numero}@verdeotienda.demo`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:Entrega estimada · Pedido ${order.numero}`,
+    `DESCRIPTION:Pedido confirmado en Verdeo. Esta fecha es estimada y se basa en los plazos de envío habituales (5 días hábiles).`,
+    "LOCATION:Argentina",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
 
 export default function OrderSummary() {
-  const [order, setOrder] = useState<Order | null | undefined>(undefined);
+  const [order, setOrder] = useState<OrderRecord | null | undefined>(undefined);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setOrder(null);
-        return;
-      }
-      const parsed = JSON.parse(raw) as Order;
-      setOrder(parsed);
-    } catch {
-      setOrder(null);
-    }
+    const url = new URL(window.location.href);
+    const n = url.searchParams.get("n");
+    setOrder(loadOrder(n));
   }, []);
 
   if (order === undefined) {
@@ -72,10 +91,28 @@ export default function OrderSummary() {
   });
 
   const metodoLabel =
-    order.metodoPago === "transferencia" ? "Transferencia bancaria" : "Efectivo contra entrega";
+    order.metodoPago === "transferencia"
+      ? "Transferencia bancaria"
+      : order.metodoPago === "efectivo"
+        ? "Efectivo contra entrega"
+        : "Tarjeta";
+
+  const downloadIcs = () => {
+    const ics = buildIcs(order);
+    if (typeof window === "undefined") return;
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `verdeo-${order.numero}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 print:gap-0">
       {/* Confirmación */}
       <section class="lg:col-span-7" aria-label="Confirmación del pedido">
         <div class="bezel-outer mb-8">
@@ -100,6 +137,26 @@ export default function OrderSummary() {
           </div>
         </div>
 
+        {order.giftWrap && (
+          <div class="bezel-outer mb-6">
+            <div class="bezel-inner p-4 md:p-5 bg-amber/10 border-amber/30">
+              <div class="flex items-start gap-3">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 mt-0.5 text-amber-deep" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M3 9h18M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M7 9V6a3 3 0 0 1 6 0v3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <div>
+                  <div class="font-medium text-amber-deep">Envoltorio para regalo incluido</div>
+                  {order.giftMessage && (
+                    <p class="text-sm text-ink/80 mt-1 italic">
+                      "{order.giftMessage}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div>
             <div class="eyebrow mb-2">Número de pedido</div>
@@ -123,14 +180,14 @@ export default function OrderSummary() {
           </div>
         </div>
 
-        {order.notas && (
+        {order.envio_direccion.notas && (
           <div class="mt-6 p-4 bg-cream/70 rounded-2xl">
-            <div class="eyebrow mb-1.5">Notas</div>
-            <div class="text-sm text-ink/90">{order.notas}</div>
+            <div class="eyebrow mb-1.5">Notas para el envío</div>
+            <div class="text-sm text-ink/90">{order.envio_direccion.notas}</div>
           </div>
         )}
 
-        <div class="mt-8 flex flex-wrap items-center gap-3">
+        <div class="mt-8 flex flex-wrap items-center gap-3 print:hidden">
           <a href="/productos" class="btn-primary">
             Seguir comprando
             <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -138,12 +195,33 @@ export default function OrderSummary() {
             </svg>
           </a>
           <a href="/" class="btn-ghost">Volver al inicio</a>
+          <button
+            type="button"
+            onClick={downloadIcs}
+            class="btn-ghost"
+          >
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round" />
+            </svg>
+            Sumar a calendario
+          </button>
+          <button
+            type="button"
+            onClick={() => typeof window !== "undefined" && window.print()}
+            class="btn-ghost"
+          >
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Imprimir
+          </button>
         </div>
       </section>
 
       {/* Resumen */}
       <aside class="lg:col-span-5" aria-label="Resumen del pedido">
-        <div class="sticky top-24 bezel-outer">
+        <div class="sticky top-24 bezel-outer print:static print:shadow-none">
           <div class="bezel-inner p-6 md:p-8">
             <div class="display text-[24px] mb-5">Productos</div>
             <ul class="flex flex-col gap-3 mb-5">
@@ -172,6 +250,12 @@ export default function OrderSummary() {
                 <dt class="text-muted">Subtotal</dt>
                 <dd class="tabular-nums">{formatPrecio(order.subtotal)}</dd>
               </div>
+              {order.giftWrap && (
+                <div class="flex items-center justify-between">
+                  <dt class="text-muted">Envoltorio para regalo</dt>
+                  <dd class="tabular-nums text-amber-deep">incluido</dd>
+                </div>
+              )}
               {order.descuento && order.descuento > 0 && (
                 <div class="flex items-center justify-between">
                   <dt class="text-muted">

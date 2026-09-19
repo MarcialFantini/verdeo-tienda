@@ -1,0 +1,132 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import ProductCard from "../../components/ProductCard.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { getCollection } from "astro:content";
+import { CATEGORIAS, type CategoriaId } from "../../lib/site.ts";
+
+export async function getStaticPaths() {
+  return CATEGORIAS.map((c) => ({ params: { slug: c.id } }));
+}
+
+const { slug } = Astro.params as { slug: string };
+const categoria = CATEGORIAS.find((c) => c.id === slug);
+if (!categoria) {
+  return Astro.redirect("/404");
+}
+
+const todos = await getCollection("productos");
+const productosCategoria = todos
+  .filter((p) => p.data.categoria === categoria.id)
+  .sort((a, b) => {
+    const da = a.data.fecha_agregado ?? "";
+    const db = b.data.fecha_agregado ?? "";
+    if (db !== da) return db.localeCompare(da);
+    return (b.data.ventas_simuladas ?? 0) - (a.data.ventas_simuladas ?? 0);
+  });
+
+const totalCategoria = productosCategoria.length;
+const totalCatalogo = todos.length;
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/productos", label: "Catálogo" },
+  { href: `/categoria/${categoria.id}`, label: categoria.nombre },
+];
+---
+
+<Layout
+  title={`${categoria.nombre} · Verdeo Tienda`}
+  description={categoria.descripcion}
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-12 md:pb-16">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-end">
+      <div class="lg:col-span-8">
+        <div class="eyebrow mb-3">Categoría · {totalCategoria} productos</div>
+        <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+          {categoria.nombre}
+        </h1>
+        <p class="mt-5 text-lg text-muted max-w-[64ch] leading-relaxed">
+          {categoria.introLargo}
+        </p>
+      </div>
+      <div class="lg:col-span-4 text-right">
+        <a
+          href="/productos"
+          class="text-sm text-muted hover:text-forest transition-colors"
+        >
+          Ver todas las categorías ({totalCatalogo} productos) →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-10 md:pb-14" aria-label="Subcategorías">
+    <ul class="flex flex-wrap gap-2 md:gap-3">
+      <li>
+        <a
+          href="/productos"
+          class="inline-flex items-center px-4 py-2 rounded-full text-sm border border-[var(--color-hairline)] hover:border-ink/40 transition-colors duration-300"
+        >
+          Todas ({totalCatalogo})
+        </a>
+      </li>
+      {
+        CATEGORIAS.map((c) => (
+          <li>
+            <a
+              href={`/categoria/${c.id}`}
+              class={`inline-flex items-center px-4 py-2 rounded-full text-sm border transition-colors duration-300 ${
+                c.id === categoria.id
+                  ? "bg-forest text-cream border-forest"
+                  : "border-[var(--color-hairline)] hover:border-ink/40"
+              }`}
+            >
+              {c.nombre}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-20 md:pb-32">
+    {productosCategoria.length === 0 ? (
+      <div class="text-center py-20">
+        <div class="display text-[32px] md:text-[44px] mb-3">Próximamente.</div>
+        <p class="text-muted">Todavía no hay productos cargados en esta categoría.</p>
+      </div>
+    ) : (
+      <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 md:gap-x-7 gap-y-10 md:gap-y-14">
+        {productosCategoria.map((p) => (
+          <li>
+            <ProductCard producto={p} />
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-24 md:pb-32">
+    <div class="bezel-outer">
+      <div class="bezel-inner p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div class="max-w-[52ch]">
+          <div class="eyebrow mb-2">¿Sostenible?</div>
+          <h2 class="display text-[28px] md:text-[40px] leading-[1]">
+            Cómo cuidamos cada producto
+          </h2>
+        </div>
+        <a href="/cuidados#${categoria.cuidados}" class="btn-ghost">
+          Ver guía de cuidados
+          <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

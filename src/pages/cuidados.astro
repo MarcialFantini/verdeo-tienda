@@ -1,0 +1,119 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/cuidados", label: "Cuidados" },
+];
+
+const SECCIONES = [
+  {
+    id: "velas",
+    eyebrow: "Velas",
+    titulo: "Cómo cuidar una vela Verdeo",
+    puntos: [
+      "Primera quema: dejá que la cera derretida cubra toda la superficie del frasco (1 a 2 horas). Eso evita el 'túnel'.",
+      "Recortá el pabilo a 5 mm antes de cada uso. Pabilo largo = hollín.",
+      "No quemes más de 4 horas seguidas. El pabilo se recalienta y la cera se evapora más rápido.",
+      "Ubicá la vela en superficies estables y lejos de cortinas.",
+      "El frasco de vidrio lo podés reutilizar para un ramo seco, un plantín o un portavelas luego de que se termine la cera.",
+    ],
+  },
+  {
+    id: "difusores",
+    eyebrow: "Difusores",
+    titulo: "Cómo mantener tu difusor",
+    puntos: [
+      "Las primeras 48 h el aroma es más fuerte porque las varillas absorben rápido. Si te resulta intenso, retirá algunas.",
+      "Dá vuelta las varillas una vez por semana para reactivar el aroma.",
+      "Mantenelo lejos de ventanas con sol directo y de fuentes de calor. El calor acelera la evaporación y acorta la vida útil.",
+      "Cuando se termine el líquido, lavá el frasco con agua tibia y jabón. Reusalo para varillas de repuesto o como florero.",
+      "Las varillas de ratán duran más que las de mimbre. Reemplazá cada 2 a 3 meses para mejor difusión.",
+    ],
+  },
+  {
+    id: "jabones",
+    eyebrow: "Jabones",
+    titulo: "Cómo extender la vida de tu jabón",
+    puntos: [
+      "Después de cada uso, secá la pastilla en una jabonera que drene agua. Si queda sumergida se ablanda y dura menos.",
+      "Cortá la pastilla por la mitad y usá una mitad mientras la otra descansa en un lugar seco. Dura ~30 % más.",
+      "Los jabones exfoliantes (sal marina, arcilla) úsalos 2 veces por semana, no a diario.",
+      "Mantenelos en un lugar fresco y seco, lejos del chorro directo de la ducha.",
+    ],
+  },
+  {
+    id: "textiles",
+    eyebrow: "Textiles",
+    titulo: "Cómo lavar tus textiles Verdeo",
+    puntos: [
+      "Lavá a máquina en agua fría (30°C) con detergente neutro. Sin blanqueador ni suavizante.",
+      "Las toallas absorben mejor después del primer lavado (hasta un 10 % más). No te preocupes si al principio parecen menos absorbentes.",
+      "Secá al aire libre cuando puedas. Si usás secadora, hacelo a temperatura baja.",
+      "Los repasadores de lino se arrugan menos si los retirá del lavarropas apenas termina el ciclo y los colgás abiertos.",
+      "Para manchas difíciles (café, vino, tomate): agua fría + jabón de coco. Nunca agua caliente sobre una mancha de proteína (sangre, huevo).",
+    ],
+  },
+] as const;
+---
+
+<Layout
+  title="Cuidados · Verdeo"
+  description="Cómo cuidar velas, difusores, jabones y textiles para que duren más."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-12">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-end">
+      <div class="lg:col-span-8">
+        <div class="eyebrow mb-3">Guía de cuidados</div>
+        <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+          Cada producto dura más con cuatro mimos.
+        </h1>
+      </div>
+      <div class="lg:col-span-4 text-muted text-sm leading-relaxed max-w-[34ch]">
+        Pequeños gestos que cuidan el producto, tu bolsillo y el taller que lo
+        hizo.
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 pb-24 md:pb-32">
+    <ul class="flex flex-col gap-8 md:gap-12">
+      {SECCIONES.map((sec, i) => (
+        <li id={sec.id} class={`grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 scroll-mt-32 ${i % 2 === 0 ? "" : "md:[&>*:first-child]:order-2"}`}>
+          <div class="md:col-span-5">
+            <div class="display text-[120px] md:text-[180px] leading-[0.85] text-forest/10 tabular-nums">
+              {String(i + 1).padStart(2, "0")}
+            </div>
+          </div>
+          <div class="md:col-span-7">
+            <div class="eyebrow mb-2">{sec.eyebrow}</div>
+            <h2 class="display text-[28px] md:text-[40px] leading-[1.05] mb-5">
+              {sec.titulo}
+            </h2>
+            <ul class="flex flex-col gap-2.5 text-muted leading-relaxed">
+              {sec.puntos.map((p) => (
+                <li class="flex items-start gap-3">
+                  <svg viewBox="0 0 24 24" class="w-4 h-4 mt-1 text-forest shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M5 12l5 5 9-11" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <a
+              href={`/categoria/${sec.id}`}
+              class="mt-5 inline-flex text-sm hover:text-forest transition-colors underline underline-offset-4"
+            >
+              Ver {sec.eyebrow.toLowerCase()} →
+            </a>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Layout>

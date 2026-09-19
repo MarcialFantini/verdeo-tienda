@@ -1,0 +1,122 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/preguntas", label: "Preguntas frecuentes" },
+];
+
+const PREGUNTAS = [
+  {
+    categoria: "Productos",
+    items: [
+      {
+        q: "¿Son aptos para pieles sensibles?",
+        a: "Los jabones Verdeo son saponificados en frío, sin sulfatos ni parabenos. Son aptos para pieles sensibles. Las velas de cera de soja no producen reacciones en personas con sensibilidad olfativa porque usamos aceites esenciales destilados, no fragancias sintéticas.",
+      },
+      {
+        q: "¿Cuánto dura una vela?",
+        a: "Depende del tamaño: las velas pequeñas (80 g) queman aproximadamente 18 horas, las medianas (200 g) 45 horas, las grandes (400 g) 70 horas y las XL triple pabilo (600 g) alrededor de 100 horas. La cifra asume una quema de hasta 4 horas por vez.",
+      },
+      {
+        q: "¿Las velas tienen plomo en el pabilo?",
+        a: "No. Todas nuestras velas usan pabilo 100 % algodón, certificado sin plomo. Lo mismo aplica al difusor: las varillas son de ratán natural, no de imitación.",
+      },
+      {
+        q: "¿Puedo personalizar un bundle?",
+        a: "Sí. Si querés armar un bundle para un evento (casamiento, despedida, etc.), escribinos a hola@verdeotienda.demo y armamos una cotización. Hacemos bundles personalizados desde 5 unidades.",
+      },
+    ],
+  },
+  {
+    categoria: "Pedidos y pagos",
+    items: [
+      {
+        q: "¿Cuáles son los medios de pago?",
+        a: "Trabajamos con transferencia bancaria, efectivo contra entrega (CABA y GBA) y tarjetas a través de Mercado Pago. Esta tienda demo sólo simula el pago: no procesás nada real acá.",
+      },
+      {
+        q: "¿Puedo usar un cupón de descuento?",
+        a: "Sí, en el checkout hay un campo 'Código de cupón'. Los cupones vigentes son VERDEO10 (10 % off), PRIMERA20 (20 % off en tu primera compra), ENVIOGRATIS (envío gratis sin mínimo), FERIA15 (15 % off, exclusivo clientas de ferias) y REGALO5K (ARS 500 off en compras + ARS 5.000). Se ingresan en mayúsculas.",
+      },
+      {
+        q: "¿Cómo recibo mi número de pedido?",
+        a: "Al confirmar el checkout te enviamos un email con el número VRT-NNNNNN y todos los detalles. También lo guardamos en este navegador: si volvés a entrar a esta tienda, podés consultarlo en /cuenta/pedidos.",
+      },
+    ],
+  },
+  {
+    categoria: "Envíos",
+    items: [
+      {
+        q: "¿Cuánto tarda en llegar?",
+        a: "CABA y GBA: 2 a 5 días hábiles desde el despacho. Interior del país: 5 a 9 días hábiles. Te enviamos el tracking por email cuando el pedido sale del taller.",
+      },
+      {
+        q: "¿Hacen envíos gratis?",
+        a: "Sí, en compras mayores a ARS 25.000 el envío es gratis a todo el país. Abajo de ese monto el envío cuesta ARS 3.200.",
+      },
+    ],
+  },
+  {
+    categoria: "Sustentabilidad",
+    items: [
+      {
+        q: "¿Cómo reciclar el envase?",
+        a: "La caja kraft va al cartón. El papel seda, al compost (se descompone en 6 a 8 semanas). Los frascos de vidrio los podés reutilizar o llevarlos al centro de reciclaje verde más cercano. Las etiquetas también son compostables.",
+      },
+      {
+        q: "¿Tienen alguna certificación?",
+        a: "Nuestros textiles son GOTS (algodón orgánico) y los jabones no están certificados todavía — usamos materia prima trazable pero el sello orgánico multi-costearía el producto. Si querés que vayamos por la certificación, escribinos.",
+      },
+    ],
+  },
+] as const;
+---
+
+<Layout
+  title="Preguntas frecuentes · Verdeo"
+  description="Respuestas a las preguntas más habituales sobre los productos, el envío y la sustentabilidad."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-12">
+    <div class="eyebrow mb-3">Ayuda</div>
+    <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+      Preguntas frecuentes.
+    </h1>
+    <p class="mt-5 text-muted max-w-[64ch] leading-relaxed">
+      Respuestas a las preguntas que más nos llegan por Instagram y email.
+      ¿No encontrás lo que buscás? Escribinos a{" "}
+      <a
+        href="mailto:hola@verdeotienda.demo"
+        class="text-forest underline underline-offset-4">hola@verdeotienda.demo</a>.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 pb-24 md:pb-32">
+    {PREGUNTAS.map((grupo) => (
+      <div class="mb-12">
+        <h2 class="display text-[24px] md:text-[32px] mb-5">{grupo.categoria}</h2>
+        <div class="flex flex-col gap-3">
+          {grupo.items.map((p) => (
+            <details class="bezel-outer">
+              <summary class="bezel-inner cursor-pointer list-none p-5 md:p-6 flex items-center justify-between gap-4">
+                <span class="font-medium">{p.q}</span>
+                <svg viewBox="0 0 24 24" class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </summary>
+              <div class="px-5 md:px-6 pb-5 text-sm text-muted leading-relaxed">
+                {p.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+</Layout>

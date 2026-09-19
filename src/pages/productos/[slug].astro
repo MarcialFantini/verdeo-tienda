@@ -3,10 +3,16 @@ export const prerender = true;
 
 import Layout from "../../layouts/Layout.astro";
 import ProductCard from "../../components/ProductCard.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
 import AddToCart from "../../components/islands/AddToCart.tsx";
+import VariantsPicker from "../../components/islands/VariantsPicker.tsx";
 import Reviews from "../../components/islands/Reviews.tsx";
+import WishlistButton from "../../components/islands/WishlistButton.tsx";
+import StockBadge from "../../components/islands/StockBadge.tsx";
+import StickyAddToCart from "../../components/islands/StickyAddToCart.tsx";
+import RecentlyViewed from "../../components/islands/RecentlyViewed.tsx";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { CATEGORIAS, formatPrecio } from "../../lib/site.ts";
+import { CATEGORIAS, formatPrecio, labelCategoria } from "../../lib/site.ts";
 import { getReviewsSeed } from "../../lib/reviews.ts";
 
 export async function getStaticPaths() {
@@ -22,6 +28,7 @@ interface Props {
 }
 
 const { producto } = Astro.props;
+const data = producto.data;
 const {
   nombre,
   categoria,
@@ -36,17 +43,21 @@ const {
   imagen,
   imagen_alt,
   stock,
+  stock_bajo,
   sku,
-} = producto.data;
+  variantes,
+  es_bundle,
+  bundle_slugs,
+  rating_promedio,
+  rating_cantidad,
+} = data;
 
 const fallbackImg = `https://picsum.photos/seed/${producto.id}/1200/1500`;
 const categoriaLabel = CATEGORIAS.find((c) => c.id === categoria)?.nombre ?? categoria;
+const tieneVariantes = !!variantes && variantes.length > 0;
+const rating = rating_promedio ?? 0;
+const ratingCount = rating_cantidad ?? 0;
 
-/**
- * Microcopy cálido estilo Verdeo — taglets que aparecen debajo del nombre.
- * Los tres primeros son de marca (siempre ciertos), el cuarto se deriva
- * de la categoría del producto.
- */
 const MICROCOPY_MARCA = [
   "Hecho a mano",
   "Empaque compostable",
@@ -57,20 +68,14 @@ const MICROCOPY_POR_CATEGORIA: Record<string, string> = {
   difusores: "Varillas de ratán",
   jabones: "Saponificación en frío",
   textiles: "Algodón orgánico",
+  bundles: "Selección curada",
 };
 const microcopyTags = [
   ...MICROCOPY_MARCA,
   MICROCOPY_POR_CATEGORIA[categoria] ?? "Ingredientes nobles",
 ];
 
-/**
- * Galería: la imagen del producto es la principal. Cuando sólo hay una
- * (caso normal del catálogo) mostramos la imagen grande + 2 thumbnails
- * derivados con picsum (semillas determinísticas a partir del slug)
- * que ofician de "otros ángulos / vista de ambiente". Si el día de
- * mañana el frontmatter admite más imágenes, este layout ya las
- * soporta como `galeria`.
- */
+// Galería (misma lógica que antes).
 const galeria: Array<{ src: string; alt: string; thumb: string }> = [
   {
     src: imagen,
@@ -89,41 +94,51 @@ const galeria: Array<{ src: string; alt: string; thumb: string }> = [
   },
 ];
 
-// Productos relacionados (misma categoría, excluir el actual)
+// Relacionados: misma categoría + cross-sell de otras categorías.
 const todos = await getCollection("productos");
 const relacionados = todos
   .filter((p) => p.data.categoria === categoria && p.id !== producto.id)
   .slice(0, 4);
 
-// Reseñas seed para pasarlas al island (server-render).
+const crossSell = todos
+  .filter((p) => p.data.categoria !== categoria && p.id !== producto.id)
+  .slice(0, 4);
+
+// Reseñas seed.
 const reviewsSeed = getReviewsSeed(producto.id);
+
+// Productos para RecentlyViewed.
+const productosParaRecent = todos.map((p) => ({
+  slug: p.id,
+  nombre: p.data.nombre,
+  imagen: p.data.imagen,
+  imagen_alt: p.data.imagen_alt,
+  precio: p.data.precio,
+  categoria: p.data.categoria,
+  categoriaLabel: labelCategoria(p.data.categoria),
+}));
+
+// Componentes del bundle.
+const bundleProductos = es_bundle && bundle_slugs
+  ? bundle_slugs
+      .map((s) => todos.find((p) => p.id === s))
+      .filter((p): p is CollectionEntry<"productos"> => Boolean(p))
+  : [];
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/productos", label: "Catálogo" },
+  { href: `/categoria/${categoria}`, label: categoriaLabel },
+  { href: `/productos/${producto.id}`, label: nombre, current: true },
+];
 ---
 
 <Layout
   title={`${nombre} · Verdeo Tienda`}
   description={descripcion_corta}
 >
-  <!-- Migas -->
-  <nav
-    class="mx-auto max-w-[1400px] px-5 md:px-10 pt-6 md:pt-10 text-xs text-muted"
-    aria-label="Migas de pan"
-  >
-    <ol class="flex items-center gap-2 flex-wrap">
-      <li><a href="/" class="hover:text-forest transition-colors">Inicio</a></li>
-      <li aria-hidden="true">/</li>
-      <li><a href="/productos" class="hover:text-forest transition-colors">Catálogo</a></li>
-      <li aria-hidden="true">/</li>
-      <li>
-        <a href={`/productos?cat=${categoria}`} class="hover:text-forest transition-colors">
-          {categoriaLabel}
-        </a>
-      </li>
-      <li aria-hidden="true">/</li>
-      <li class="text-ink truncate max-w-[40ch]">{nombre}</li>
-    </ol>
-  </nav>
+  <Breadcrumbs crumbs={crumbs} />
 
-  <!-- FICHA -->
   <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-16 md:pb-24">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
       <!-- Galería -->
@@ -146,7 +161,6 @@ const reviewsSeed = getReviewsSeed(producto.id);
           </div>
         </div>
 
-        <!-- Thumbnails (galería > 1 imagen) -->
         {galeria.length > 1 && (
           <ul
             class="mt-4 grid grid-cols-3 gap-3 md:gap-4"
@@ -188,12 +202,30 @@ const reviewsSeed = getReviewsSeed(producto.id);
           <span class="eyebrow">{categoriaLabel}</span>
           <span class="text-muted text-xs" aria-hidden="true">·</span>
           <span class="text-xs text-muted font-mono">{sku}</span>
+          {rating > 0 && ratingCount > 0 && (
+            <>
+              <span class="text-muted text-xs" aria-hidden="true">·</span>
+              <span
+                class="inline-flex items-center gap-1 text-xs text-ink"
+                aria-label={`Rating ${rating.toFixed(1)} sobre 5 con ${ratingCount} reseñas`}
+              >
+                <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 text-amber" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2.5l2.95 6 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.1 1.13-6.58L2.45 9.46l6.6-.96L12 2.5z" />
+                </svg>
+                <span class="tabular-nums">{rating.toFixed(1)}</span>
+                <span class="text-muted">({ratingCount})</span>
+              </span>
+            </>
+          )}
         </div>
-        <h1 class="display text-[36px] md:text-[56px] leading-[0.98]">
-          {nombre}
-        </h1>
 
-        <!-- Microcopy taglets — cálido, honesto, sin latón premium -->
+        <div class="flex items-start justify-between gap-4">
+          <h1 class="display text-[36px] md:text-[56px] leading-[0.98] flex-1">
+            {nombre}
+          </h1>
+          <WishlistButton client:load slug={producto.id} nombre={nombre} size="md" />
+        </div>
+
         <ul
           class="mt-5 flex flex-wrap gap-2"
           aria-label="Características del producto"
@@ -221,28 +253,65 @@ const reviewsSeed = getReviewsSeed(producto.id);
           {descripcion_corta}
         </p>
 
-        <div class="mt-6 flex items-baseline gap-3">
+        <div class="mt-6 flex items-baseline gap-3 flex-wrap">
           <div class="text-3xl display tabular-nums">{formatPrecio(precio)}</div>
-          <div class="text-xs text-muted">
-            {stock > 0 ? `${stock} en stock` : "Sin stock"}
-          </div>
+          <StockBadge
+            stock={tieneVariantes ? (variantes![0]?.stock ?? stock) : stock}
+            stockBajo={stock_bajo ?? 3}
+            variantesCount={variantes?.length}
+          />
         </div>
 
         <hr class="hairline my-8" />
 
-        <!-- Add to cart island -->
-        <AddToCart
-          client:load
-          slug={producto.id}
-          nombre={nombre}
-          precio={precio}
-          imagen={imagen}
-          stock={stock}
-        />
+        <!-- Add to cart (variante si aplica) -->
+        <div class="add-to-cart-sentinel">
+          {tieneVariantes ? (
+            <VariantsPicker
+              client:load
+              slug={producto.id}
+              nombre={nombre}
+              precioBase={precio}
+              imagen={imagen}
+              imagenAlt={imagen_alt}
+              variantes={variantes!}
+              stockBase={stock}
+              stockBajoBase={stock_bajo ?? 3}
+            />
+          ) : (
+            <AddToCart
+              client:load
+              slug={producto.id}
+              nombre={nombre}
+              precio={precio}
+              imagen={imagen}
+              stock={stock}
+            />
+          )}
+        </div>
 
         <hr class="hairline my-8" />
 
-        <!-- Detalles expandibles -->
+        <!-- Si es bundle, mostramos qué incluye -->
+        {es_bundle && bundleProductos.length > 0 && (
+          <details class="group border-b border-[var(--color-hairline)] py-4" open>
+            <summary class="flex items-center justify-between cursor-pointer list-none">
+              <span class="font-medium">¿Qué incluye este kit?</span>
+              <svg viewBox="0 0 24 24" class="w-4 h-4 transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </summary>
+            <ul class="mt-3 flex flex-col gap-2 text-sm">
+              {bundleProductos.map((p) => (
+                <li class="flex items-center gap-3 text-muted">
+                  <img src={p.data.imagen} alt="" class="w-12 h-14 rounded-md object-cover bg-linen shrink-0" loading="lazy" />
+                  <a href={`/productos/${p.id}`} class="hover:text-forest transition-colors">{p.data.nombre}</a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         <details class="group border-b border-[var(--color-hairline)] py-4" open>
           <summary class="flex items-center justify-between cursor-pointer list-none">
             <span class="font-medium">Descripción</span>
@@ -277,31 +346,17 @@ const reviewsSeed = getReviewsSeed(producto.id);
             </svg>
           </summary>
           <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
-            {dimensiones && (<>
-              <dt class="text-muted">Dimensiones</dt>
-              <dd>{dimensiones}</dd>
-            </>)}
-            {peso && (<>
-              <dt class="text-muted">{categoria === "difusores" ? "Contenido" : "Peso"}</dt>
-              <dd>{peso}</dd>
-            </>)}
-            {tiempo_quema && (<>
-              <dt class="text-muted">Tiempo de quema</dt>
-              <dd>{tiempo_quema}</dd>
-            </>)}
-            {aroma && (<>
-              <dt class="text-muted">Aroma</dt>
-              <dd>{aroma}</dd>
-            </>)}
-            <dt class="text-muted">SKU</dt>
-            <dd class="font-mono text-xs">{sku}</dd>
+            {dimensiones && (<><dt class="text-muted">Dimensiones</dt><dd>{dimensiones}</dd></>)}
+            {peso && (<><dt class="text-muted">{categoria === "difusores" ? "Contenido" : "Peso"}</dt><dd>{peso}</dd></>)}
+            {tiempo_quema && (<><dt class="text-muted">Tiempo de quema</dt><dd>{tiempo_quema}</dd></>)}
+            {aroma && (<><dt class="text-muted">Aroma</dt><dd>{aroma}</dd></>)}
+            <dt class="text-muted">SKU</dt><dd class="font-mono text-xs">{sku}</dd>
           </dl>
         </details>
       </div>
     </div>
   </section>
 
-  <!-- RESEÑAS -->
   <Reviews
     client:visible
     slug={producto.id}
@@ -309,7 +364,6 @@ const reviewsSeed = getReviewsSeed(producto.id);
     seed={reviewsSeed}
   />
 
-  <!-- RELACIONADOS -->
   {relacionados.length > 0 && (
     <section class="mx-auto max-w-[1400px] px-5 md:px-10 py-16 md:py-24 border-t border-[var(--color-hairline)]">
       <div class="flex items-end justify-between mb-10">
@@ -317,7 +371,7 @@ const reviewsSeed = getReviewsSeed(producto.id);
           También te puede interesar
         </h2>
         <a
-          href={`/productos?cat=${categoria}`}
+          href={`/categoria/${categoria}`}
           class="hidden md:inline-flex text-sm hover:text-forest transition-colors"
         >
           Ver más de {categoriaLabel.toLowerCase()} →
@@ -332,9 +386,76 @@ const reviewsSeed = getReviewsSeed(producto.id);
       </ul>
     </section>
   )}
+
+  {crossSell.length > 0 && (
+    <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-16 md:pb-24">
+      <div class="flex items-end justify-between mb-8">
+        <h2 class="display text-[24px] md:text-[32px] leading-[1]">
+          Para sumar a tu pedido
+        </h2>
+      </div>
+      <ul class="grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-7 gap-y-8">
+        {crossSell.map((p) => (
+          <li>
+            <ProductCard producto={p} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <RecentlyViewed
+    client:visible
+    productos={productosParaRecent}
+    excludeSlug={producto.id}
+    max={4}
+  />
+
+  <StickyAddToCart
+    client:load
+    slug={producto.id}
+    nombre={nombre}
+    precio={precio}
+    imagen={imagen}
+    stock={stock}
+  />
+
+  <!-- JSON-LD: Product schema para SEO/Google Shopping -->
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: nombre,
+      description: descripcion_larga,
+      sku: sku,
+      brand: { "@type": "Brand", name: "Verdeo" },
+      category: categoriaLabel,
+      image: imagen,
+      offers: {
+        "@type": "Offer",
+        price: precio,
+        priceCurrency: "ARS",
+        availability:
+          stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        url: Astro.url.href,
+      },
+      ...(rating_promedio && rating_cantidad
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: rating_promedio,
+              reviewCount: rating_cantidad,
+              bestRating: 5,
+              worstRating: 1,
+            },
+          }
+        : {}),
+    })}
+  />
 </Layout>
 
-<!-- Galería: script inline para thumbs (vanilla, sin Alpine) -->
 <script is:inline>
   (function () {
     if (typeof window === "undefined") return;

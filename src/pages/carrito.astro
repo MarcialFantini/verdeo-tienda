@@ -2,14 +2,36 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
 import CartView from "../components/islands/CartView.tsx";
+import { getCollection } from "astro:content";
+
+const productos = (await getCollection("productos"))
+  .sort((a, b) => (b.data.ventas_simuladas ?? 0) - (a.data.ventas_simuladas ?? 0))
+  .slice(0, 4)
+  .map((p) => ({
+    slug: p.id,
+    nombre: p.data.nombre,
+    imagen: p.data.imagen,
+    imagen_alt: p.data.imagen_alt,
+    precio: p.data.precio,
+    stock: p.data.stock,
+    categoria: p.data.categoria,
+  }));
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/carrito", label: "Carrito", current: true },
+];
 ---
 
 <Layout
   title="Carrito · Verdeo Tienda"
   description="Revisá los productos de tu carrito y avanzá al checkout."
 >
-  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-10 md:pt-16 pb-16 md:pb-24">
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-16 md:pb-24">
     <div class="flex items-end justify-between mb-10 md:mb-14">
       <div>
         <div class="eyebrow mb-3">Tu selección</div>
@@ -25,6 +47,6 @@ import CartView from "../components/islands/CartView.tsx";
       </a>
     </div>
 
-    <CartView client:only="preact" />
+    <CartView client:only="preact" recomendaciones={productos} />
   </section>
 </Layout>

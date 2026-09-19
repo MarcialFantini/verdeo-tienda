@@ -1,0 +1,118 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { getCollection } from "astro:content";
+
+function formatFecha(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("es-AR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+const posts = (await getCollection("novedades")).sort((a, b) =>
+  b.data.fecha.localeCompare(a.data.fecha),
+);
+
+const destaque = posts.filter((p) => p.data.destacado);
+const resto = posts.filter((p) => !p.data.destacado);
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/blog", label: "Novedades" },
+];
+---
+
+<Layout
+  title="Novedades · Verdeo"
+  description="Notas del taller, guías y reflexiones sobre sustentabilidad."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-12">
+    <div class="eyebrow mb-3">Blog · {posts.length} notas</div>
+    <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+      Novedades.
+    </h1>
+    <p class="mt-5 text-muted max-w-[64ch] leading-relaxed">
+      Notas del taller, guías de uso, reflexiones sobre sustentabilidad y
+      química de las fragancias.
+    </p>
+  </section>
+
+  {destaque.length > 0 && (
+    <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-16 md:pb-24">
+      <ul class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-7">
+        {destaque.map((p) => (
+          <li>
+            <a href={`/blog/${p.id}`} class="block group">
+              <div class="bezel-outer">
+                <div class="bezel-inner overflow-hidden">
+                  <div class="aspect-[16/10] bg-linen">
+                    <img
+                      src={p.data.imagen}
+                      alt={p.data.imagen_alt}
+                      loading="lazy"
+                      decoding="async"
+                      class="w-full h-full object-cover transition-transform duration-[1200ms] ease-[var(--ease-fluid)] group-hover:scale-[1.04]"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="mt-5 max-w-[64ch]">
+                <div class="eyebrow mb-2">{p.data.eyebrow} · {formatFecha(p.data.fecha)}</div>
+                <h2 class="display text-[28px] md:text-[40px] leading-[1.05] group-hover:text-forest transition-colors duration-300">
+                  {p.data.titulo}
+                </h2>
+                <p class="mt-3 text-muted leading-relaxed">
+                  {p.data.descripcion}
+                </p>
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-24 md:pb-32">
+    <h2 class="display text-[28px] md:text-[36px] mb-8 md:mb-12">Más notas</h2>
+    <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 md:gap-x-7 gap-y-12">
+      {resto.map((p) => (
+        <li>
+          <a href={`/blog/${p.id}`} class="block group">
+            <div class="bezel-outer">
+              <div class="bezel-inner overflow-hidden">
+                <div class="aspect-[4/3] bg-linen">
+                  <img
+                    src={p.data.imagen}
+                    alt={p.data.imagen_alt}
+                    loading="lazy"
+                    decoding="async"
+                    class="w-full h-full object-cover transition-transform duration-[1200ms] ease-[var(--ease-fluid)] group-hover:scale-[1.04]"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div class="eyebrow mb-1.5">{p.data.eyebrow} · {formatFecha(p.data.fecha)}</div>
+              <h3 class="display text-[20px] md:text-[24px] leading-[1.05] group-hover:text-forest transition-colors duration-300">
+                {p.data.titulo}
+              </h3>
+              <p class="mt-2 text-sm text-muted line-clamp-3">
+                {p.data.descripcion}
+              </p>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Layout>

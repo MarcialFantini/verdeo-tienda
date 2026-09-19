@@ -1,0 +1,42 @@
+---
+interface Crumb {
+  href: string;
+  label: string;
+  /** Si es true, no se renderiza como link (última migaja). */
+  current?: boolean;
+}
+
+interface Props {
+  crumbs: Crumb[];
+}
+
+const { crumbs } = Astro.props;
+---
+
+<nav
+  class="mx-auto max-w-[1400px] px-5 md:px-10 pt-6 md:pt-10 text-xs text-muted"
+  aria-label="Migas de pan"
+>
+  <ol class="flex items-center gap-2 flex-wrap" itemscope itemtype="https://schema.org/BreadcrumbList">
+    {
+      crumbs.map((c, i) => (
+        <li
+          class="flex items-center gap-2"
+          itemprop="itemListElement"
+          itemscope
+          itemtype="https://schema.org/ListItem"
+        >
+          {i > 0 && <span aria-hidden="true">/</span>}
+          {c.current ? (
+            <span class="text-ink truncate max-w-[40ch]" itemprop="name">{c.label}</span>
+          ) : (
+            <a href={c.href} class="hover:text-forest transition-colors" itemprop="item">
+              <span itemprop="name">{c.label}</span>
+            </a>
+          )}
+          <meta itemprop="position" content={String(i + 1)} />
+        </li>
+      ))
+    }
+  </ol>
+</nav>

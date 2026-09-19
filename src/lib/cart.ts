@@ -48,6 +48,40 @@ export const $cart = persistentAtom<CartLine[]>("verdeo:cart:v1", initialCart, {
   },
 });
 
+/**
+ * Cross-tab sync: el evento `storage` sólo dispara en pestañas distintas a
+ * la que escribió, así que dos pestañas del mismo navegador convergen sin
+ * polling ni BroadcastChannel. Si otra pestaña modifica el carrito, esta
+ * se actualiza. Si la clave se borra (e.g. clearCart desde otra pestaña),
+ * `e.newValue === null` y respetamos el vacío.
+ */
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== "verdeo:cart:v1") return;
+    if (e.newValue === null) {
+      $cart.set(initialCart);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(e.newValue);
+      if (!Array.isArray(parsed)) return;
+      const next = parsed.filter(
+        (it): it is CartLine =>
+          it &&
+          typeof it.slug === "string" &&
+          typeof it.nombre === "string" &&
+          typeof it.precio === "number" &&
+          typeof it.imagen === "string" &&
+          typeof it.cantidad === "number" &&
+          it.cantidad > 0,
+      );
+      $cart.set(next);
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 /** Cantidad total de unidades en el carrito. */
 export const $cartCount = computed($cart, (items) =>
   items.reduce((acc, it) => acc + it.cantidad, 0),

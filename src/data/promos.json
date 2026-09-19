@@ -1,0 +1,45 @@
+{
+  "promos": [
+    {
+      "code": "VERDEO10",
+      "label": "VERDEO10",
+      "kind": "percent",
+      "percent": 10,
+      "description": "10% de descuento sobre el subtotal.",
+      "vigente": true
+    },
+    {
+      "code": "PRIMERA20",
+      "label": "PRIMERA20",
+      "kind": "percent",
+      "percent": 20,
+      "description": "20% de descuento en tu primera compra. Una vez por sesión.",
+      "oneShot": true,
+      "vigente": true
+    },
+    {
+      "code": "ENVIOGRATIS",
+      "label": "ENVIOGRATIS",
+      "kind": "free_shipping",
+      "description": "Envío gratis sin mínimo.",
+      "vigente": true
+    },
+    {
+      "code": "FERIA15",
+      "label": "FERIA15",
+      "kind": "percent",
+      "percent": 15,
+      "description": "15% de descuento — exclusivo para clientas de ferias.",
+      "vigente": true
+    },
+    {
+      "code": "REGALO5K",
+      "label": "REGALO5K",
+      "kind": "percent",
+      "percent": 0,
+      "minimo": 5000,
+      "description": "Llevá ARS 500 de descuento en compras mayores a ARS 5.000.",
+      "vigente": true
+    }
+  ]
+}

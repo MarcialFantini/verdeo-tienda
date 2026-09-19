@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <style>
+      .headline {
+        font-family: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        font-weight: 500;
+        font-size: 92px;
+        letter-spacing: -0.015em;
+      }
+      .tagline {
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-weight: 400;
+        font-size: 30px;
+        letter-spacing: 0.02em;
+      }
+      .eyebrow {
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+        font-weight: 500;
+        font-size: 20px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+      }
+    </style>
+  </defs>
+
+  <!-- Fondo forest -->
+  <rect width="1200" height="630" fill="#2D4A2A" />
+
+  <!-- Hoja decorativa (símbolo de marca), opacidad baja -->
+  <g transform="translate(940, 100)" opacity="0.18">
+    <path
+      d="M60 0C30 60 0 120 0 200c0 60 20 120 60 180 40-60 60-120 60-180 0-80-30-140-60-200z"
+      fill="#C28E3F"
+    />
+  </g>
+  <g transform="translate(80, 400)" opacity="0.12">
+    <path
+      d="M40 0C20 40 0 80 0 130c0 40 15 80 40 120 25-40 40-80 40-120 0-50-20-90-40-130z"
+      fill="#F1ECDF"
+    />
+  </g>
+
+  <!-- Marco interior fino (estética editorial) -->
+  <rect
+    x="40" y="40" width="1120" height="550"
+    fill="none"
+    stroke="#F1ECDF"
+    stroke-opacity="0.15"
+    stroke-width="1.5"
+  />
+
+  <!-- Eyebrow -->
+  <text
+    x="100" y="200"
+    class="eyebrow"
+    fill="#C28E3F"
+  >Tienda consciente · desde 2019</text>
+
+  <!-- Headline principal -->
+  <text
+    x="100" y="340"
+    class="headline"
+    fill="#F1ECDF"
+  >Verdeo</text>
+
+  <!-- Tagline -->
+  <text
+    x="100" y="440"
+    class="tagline"
+    fill="#F1ECDF"
+    fill-opacity="0.92"
+  >Productos sustentables para el hogar</text>
+
+  <!-- Línea ámbar como divisor -->
+  <line
+    x1="100" y1="490" x2="200" y2="490"
+    stroke="#C28E3F"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <!-- URL -->
+  <text
+    x="100" y="540"
+    font-family="Plus Jakarta Sans, ui-sans-serif, sans-serif"
+    font-weight="500"
+    font-size="18"
+    letter-spacing="0.18em"
+    fill="#F1ECDF"
+    fill-opacity="0.6"
+  >VERDEOTIENDA.DEMO</text>
+</svg>

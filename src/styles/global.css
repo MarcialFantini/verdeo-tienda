@@ -380,3 +380,99 @@
     transform: translateY(0);
   }
 }
+
+@layer components {
+  /* Prose para el blog — sin plugin de tipografía externo, sólo display + ink */
+  .prose-verdeo h2 {
+    font-family: var(--font-display);
+    font-size: 1.875rem;
+    line-height: 1.1;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-ink);
+  }
+  .prose-verdeo h3 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.1;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-ink);
+  }
+  .prose-verdeo p {
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .prose-verdeo a {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    color: var(--color-forest);
+  }
+  .prose-verdeo a:hover {
+    color: var(--color-forest-dark);
+  }
+  .prose-verdeo strong {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .prose-verdeo ul,
+  .prose-verdeo ol {
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+  }
+  .prose-verdeo ul {
+    list-style: disc;
+  }
+  .prose-verdeo ol {
+    list-style: decimal;
+  }
+  .prose-verdeo li {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .prose-verdeo blockquote {
+    border-left: 2px solid var(--color-amber);
+    padding-left: 1.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.5rem;
+    line-height: 1.3;
+    color: var(--color-ink);
+  }
+  .prose-verdeo code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--color-linen);
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+  }
+  .prose-verdeo hr {
+    border: 0;
+    border-top: 1px solid var(--color-hairline);
+    margin-top: 2.5rem;
+    margin-bottom: 2.5rem;
+  }
+}
+
+/* Print styles para confirmación de pedido */
+@media print {
+  .glass-header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .bezel-outer,
+  .bezel-inner {
+    border-color: #ccc !important;
+    box-shadow: none !important;
+  }
+}

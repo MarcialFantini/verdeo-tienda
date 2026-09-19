@@ -1,12 +1,62 @@
 ---
 import CartBadge from "./islands/CartBadge.tsx";
+import WishlistChip from "./islands/WishlistChip.tsx";
+import SearchBox from "./islands/SearchBox.tsx";
+import { getCollection } from "astro:content";
+
+interface ProductIndex {
+  slug: string;
+  nombre: string;
+  categoria: string;
+  imagen: string;
+  precio: number;
+  descripcion_corta: string;
+  aromas?: string[];
+  ingredientes_tags?: string[];
+  materiales?: string[];
+}
+
+const todos = await getCollection("productos");
+const searchIndex: ProductIndex[] = todos.map((p) => ({
+  slug: p.id,
+  nombre: p.data.nombre,
+  categoria: p.data.categoria,
+  imagen: p.data.imagen,
+  precio: p.data.precio,
+  descripcion_corta: p.data.descripcion_corta,
+  aromas: p.data.aromas,
+  ingredientes_tags: p.data.ingredientes_tags,
+  materiales: p.data.materiales,
+}));
+
+/**
+ * Helper para marcar el link activo en el nav.
+ * Compara por path + slug de primer segmento para `/categoria/velas`
+ * vs `/productos`.
+ */
+const path = Astro.url.pathname;
+function isActive(href: string): boolean {
+  if (href === "/") return path === "/";
+  if (href === "/productos") return path === "/productos";
+  if (href === "/blog") return path === "/blog" || path.startsWith("/blog/");
+  if (href.startsWith("/categoria/")) return path.startsWith("/categoria/");
+  return path === href || path.startsWith(href + "/");
+}
+function navClass(href: string): string {
+  return [
+    "text-sm transition-colors duration-300",
+    isActive(href)
+      ? "text-forest font-medium"
+      : "text-ink/80 hover:text-forest",
+  ].join(" ");
+}
 ---
 
 <header
   class="sticky top-0 z-40 glass-header border-b border-[var(--color-hairline)]"
 >
   <div
-    class="mx-auto max-w-[1400px] px-5 md:px-10 py-3 md:py-4 flex items-center justify-between gap-6"
+    class="mx-auto max-w-[1400px] px-5 md:px-10 py-3 md:py-4 flex items-center justify-between gap-4 md:gap-6"
   >
     <a href="/" class="flex items-center gap-2 group" aria-label="Ir al inicio">
       <span
@@ -32,37 +82,75 @@ import CartBadge from "./islands/CartBadge.tsx";
     <nav class="hidden md:flex items-center gap-7" aria-label="Navegación principal">
       <a
         href="/productos"
-        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        class={navClass("/productos")}
+        aria-current={isActive("/productos") ? "page" : undefined}
         >Catálogo</a
       >
       <a
-        href="/productos?cat=velas"
-        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        href="/categoria/velas"
+        class={navClass("/categoria/velas")}
+        aria-current={isActive("/categoria/velas") ? "page" : undefined}
         >Velas</a
       >
       <a
-        href="/productos?cat=difusores"
-        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        href="/categoria/difusores"
+        class={navClass("/categoria/difusores")}
+        aria-current={isActive("/categoria/difusores") ? "page" : undefined}
         >Difusores</a
       >
       <a
-        href="/productos?cat=jabones"
-        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        href="/categoria/jabones"
+        class={navClass("/categoria/jabones")}
+        aria-current={isActive("/categoria/jabones") ? "page" : undefined}
         >Jabones</a
       >
       <a
-        href="/productos?cat=textiles"
-        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
+        href="/categoria/textiles"
+        class={navClass("/categoria/textiles")}
+        aria-current={isActive("/categoria/textiles") ? "page" : undefined}
         >Textiles</a
       >
       <a
-        href="/#nosotras"
-        class="text-sm text-ink/80 hover:text-forest transition-colors duration-300"
-        >Nosotras</a
+        href="/categoria/bundles"
+        class={navClass("/categoria/bundles")}
+        aria-current={isActive("/categoria/bundles") ? "page" : undefined}
+        >Bundles</a
+      >
+      <a
+        href="/blog"
+        class={navClass("/blog")}
+        aria-current={isActive("/blog") ? "page" : undefined}
+        >Blog</a
       >
     </nav>
 
     <div class="flex items-center gap-2 md:gap-3">
+      <div class="hidden md:block">
+        <SearchBox client:load productos={searchIndex} />
+      </div>
+
+      <a
+        href="/cuenta/favoritos"
+        class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-hairline)] hover:border-ink/40 transition-colors duration-300"
+        aria-label="Ver lista de deseos"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          class="w-[18px] h-[18px] text-ink"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 21s-7-4.5-9.5-9.5C1 8.5 3 4.5 7 4.5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 4 0 6 4 4.5 7C19 16.5 12 21 12 21z"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <WishlistChip client:load />
+      </a>
+
       <a
         href="/carrito"
         class="relative inline-flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border border-[var(--color-hairline)] hover:border-ink/40 transition-colors duration-300"
@@ -89,6 +177,7 @@ import CartBadge from "./islands/CartBadge.tsx";
 
       <!-- Menú mobile -->
       <details
+        id="mobile-menu"
         class="md:hidden relative"
         aria-label="Menú de navegación móvil"
       >
@@ -108,18 +197,96 @@ import CartBadge from "./islands/CartBadge.tsx";
           </svg>
         </summary>
         <nav
-          class="absolute right-0 top-[calc(100%+8px)] min-w-[200px] bg-cream border border-[var(--color-hairline)] rounded-2xl p-4 flex flex-col gap-3 shadow-lg z-50"
+          class="absolute right-0 top-[calc(100%+8px)] min-w-[220px] bg-cream border border-[var(--color-hairline)] rounded-2xl p-4 flex flex-col gap-3 shadow-lg z-50"
           aria-label="Navegación móvil"
         >
-          <a href="/productos" class="text-sm">Catálogo completo</a>
-          <a href="/productos?cat=velas" class="text-sm">Velas</a>
-          <a href="/productos?cat=difusores" class="text-sm">Difusores</a>
-          <a href="/productos?cat=jabones" class="text-sm">Jabones</a>
-          <a href="/productos?cat=textiles" class="text-sm">Textiles</a>
+          <a
+            href="/productos"
+            class={navClass("/productos")}
+            aria-current={isActive("/productos") ? "page" : undefined}>Catálogo completo</a
+          >
+          <a
+            href="/categoria/velas"
+            class={navClass("/categoria/velas")}
+            aria-current={isActive("/categoria/velas") ? "page" : undefined}>Velas</a
+          >
+          <a
+            href="/categoria/difusores"
+            class={navClass("/categoria/difusores")}
+            aria-current={isActive("/categoria/difusores") ? "page" : undefined}>Difusores</a
+          >
+          <a
+            href="/categoria/jabones"
+            class={navClass("/categoria/jabones")}
+            aria-current={isActive("/categoria/jabones") ? "page" : undefined}>Jabones</a
+          >
+          <a
+            href="/categoria/textiles"
+            class={navClass("/categoria/textiles")}
+            aria-current={isActive("/categoria/textiles") ? "page" : undefined}>Textiles</a
+          >
+          <a
+            href="/categoria/bundles"
+            class={navClass("/categoria/bundles")}
+            aria-current={isActive("/categoria/bundles") ? "page" : undefined}>Bundles</a
+          >
           <hr class="hairline" />
-          <a href="/#nosotras" class="text-sm">Nosotras</a>
+          <a
+            href="/blog"
+            class={navClass("/blog")}
+            aria-current={isActive("/blog") ? "page" : undefined}>Blog</a
+          >
+          <a
+            href="/sobre-verdeo"
+            class={navClass("/sobre-verdeo")}
+            aria-current={isActive("/sobre-verdeo") ? "page" : undefined}>Sobre Verdeo</a
+          >
+          <a
+            href="/cuidados"
+            class={navClass("/cuidados")}
+            aria-current={isActive("/cuidados") ? "page" : undefined}>Cuidados</a
+          >
+          <a
+            href="/envios"
+            class={navClass("/envios")}
+            aria-current={isActive("/envios") ? "page" : undefined}>Envíos</a
+          >
+          <a
+            href="/preguntas"
+            class={navClass("/preguntas")}
+            aria-current={isActive("/preguntas") ? "page" : undefined}>Preguntas</a
+          >
+          <hr class="hairline" />
+          <a
+            href="/cuenta/favoritos"
+            class={navClass("/cuenta/favoritos")}
+            aria-current={isActive("/cuenta/favoritos") ? "page" : undefined}>Favoritos</a
+          >
+          <a
+            href="/cuenta/pedidos"
+            class={navClass("/cuenta/pedidos")}
+            aria-current={isActive("/cuenta/pedidos") ? "page" : undefined}>Mis pedidos</a
+          >
         </nav>
       </details>
     </div>
   </div>
 </header>
+
+<script is:inline>
+  (function () {
+    if (typeof window === "undefined") return;
+    var menu = document.getElementById("mobile-menu");
+    if (!menu) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && menu.open) menu.open = false;
+    });
+    // Cierra el menú al hacer click en un link interno para que la
+    // navegación no quede con el overlay visualmente abierto.
+    menu.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", function () {
+        menu.open = false;
+      });
+    });
+  })();
+</script>

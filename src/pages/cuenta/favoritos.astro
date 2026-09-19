@@ -1,0 +1,47 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import WishlistView from "../../components/islands/WishlistView.tsx";
+import { getCollection } from "astro:content";
+
+const productos = (await getCollection("productos")).map((p) => ({
+  slug: p.id,
+  nombre: p.data.nombre,
+  imagen: p.data.imagen,
+  imagen_alt: p.data.imagen_alt,
+  precio: p.data.precio,
+  stock: p.data.stock,
+  stock_bajo: p.data.stock_bajo ?? 3,
+  categoria: p.data.categoria,
+}));
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/cuenta/favoritos", label: "Favoritos" },
+];
+---
+
+<Layout
+  title="Mis favoritos · Verdeo"
+  description="Tu lista de productos favoritos guardados en este navegador."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-16 md:pb-24">
+    <div class="eyebrow mb-3">Tu cuenta · favoritos</div>
+    <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+      Favoritos.
+    </h1>
+    <p class="mt-5 text-muted max-w-[64ch] leading-relaxed">
+      Tu lista de productos guardados. Vive en este navegador, así que si
+      cambiás de dispositivo o limpiás los datos del navegador, se pierde.
+      Exportala en PDF si la necesitás llevar a algún lado.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pb-24 md:pb-32">
+    <WishlistView client:only="preact" productos={productos} />
+  </section>
+</Layout>

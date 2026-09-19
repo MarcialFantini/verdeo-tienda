@@ -1,0 +1,125 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { SITE, formatPrecio } from "../lib/site.ts";
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/envios", label: "Envíos y devoluciones" },
+];
+---
+
+<Layout
+  title="Envíos y devoluciones · Verdeo"
+  description="Cómo y cuándo despachamos tu pedido, y cómo devolver un producto."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-12">
+    <div class="eyebrow mb-3">Política</div>
+    <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+      Envíos y devoluciones.
+    </h1>
+    <p class="mt-5 text-muted max-w-[64ch] leading-relaxed">
+      Despachamos desde nuestro taller en CABA. Te avisamos por email cuando el
+      pedido sale y cuándo llega.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 pb-12 md:pb-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <article class="bezel-outer">
+        <div class="bezel-inner p-6 md:p-7">
+          <div class="eyebrow mb-2">CABA y GBA</div>
+          <div class="display text-[28px] md:text-[36px] leading-[1.05] mb-2">48 h hábiles</div>
+          <p class="text-sm text-muted leading-relaxed">
+            Despachamos en 48 h hábiles. La entrega en CABA demora 2 a 4 días;
+            en GBA, 3 a 5.
+          </p>
+        </div>
+      </article>
+      <article class="bezel-outer">
+        <div class="bezel-inner p-6 md:p-7">
+          <div class="eyebrow mb-2">Interior del país</div>
+          <div class="display text-[28px] md:text-[36px] leading-[1.05] mb-2">5 a 9 días</div>
+          <p class="text-sm text-muted leading-relaxed">
+            Trabajamos con Correo Argentino y con envíos express puerta-a-puerta
+            según tu código postal.
+          </p>
+        </div>
+      </article>
+      <article class="bezel-outer">
+        <div class="bezel-inner p-6 md:p-7">
+          <div class="eyebrow mb-2">Costo</div>
+          <div class="display text-[28px] md:text-[36px] leading-[1.05] mb-2">
+            {formatPrecio(SITE.envio_costo_base)}
+          </div>
+          <p class="text-sm text-muted leading-relaxed">
+            Envío gratis a partir de {formatPrecio(SITE.envio_gratis_desde)}. Antes
+            cuesta {formatPrecio(SITE.envio_costo_base)} flat.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 pb-12 md:pb-16">
+    <h2 class="display text-[28px] md:text-[40px] mb-6">Devoluciones</h2>
+    <div class="flex flex-col gap-5 text-muted leading-relaxed max-w-[64ch]">
+      <p>
+        Si el producto llegó con algún daño de envío, te lo cambiamos sin costo.
+        Escribinos a <a href={`mailto:${SITE.email}`} class="text-forest underline">{SITE.email}</a>
+        con una foto del producto y tu número de pedido, y lo resolvemos en 48 h.
+      </p>
+      <p>
+        Para cambios de opinión (elegiste otra fragancia, querés otro textil)
+        tenés 15 días desde la recepción. El producto debe estar sin uso y con
+        su empaque original. Los gastos de envío de la devolución corren por
+        cuenta de la clienta.
+      </p>
+      <p>
+        Los jabones y velas usados no tienen cambio por higiene. Si tenés una
+        experiencia insatisfactoria con la fragancia, escribinos y vemos cómo
+        resolverlo: hacemos reposición si el producto llegó sin abrir.
+      </p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 pb-24 md:pb-32">
+    <h2 class="display text-[28px] md:text-[40px] mb-6">Preguntas frecuentes</h2>
+    <div class="flex flex-col gap-3">
+      <details class="bezel-outer" open>
+        <summary class="bezel-inner cursor-pointer list-none p-5 md:p-6 flex items-center justify-between gap-4">
+          <span class="font-medium">¿Puedo cambiar la dirección de envío después de hacer el pedido?</span>
+          <svg viewBox="0 0 24 24" class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="px-5 md:px-6 pb-5 text-sm text-muted leading-relaxed">
+          Sí, mientras el pedido no haya sido despachado (te llega un email con
+          el tracking). Escribinos a {SITE.email} con el número VRT y la dirección nueva.
+        </div>
+      </details>
+      <details class="bezel-outer">
+        <summary class="bezel-inner cursor-pointer list-none p-5 md:p-6 flex items-center justify-between gap-4">
+          <span class="font-medium">¿Hacen envíos a todo el país?</span>
+          <svg viewBox="0 0 24 24" class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="px-5 md:px-6 pb-5 text-sm text-muted leading-relaxed">
+          Sí. Trabajamos con tres correos según la zona para optimizar tiempo y
+          costo. Los plazos son los de arriba.
+        </div>
+      </details>
+      <details class="bezel-outer">
+        <summary class="bezel-inner cursor-pointer list-none p-5 md:p-6 flex items-center justify-between gap-4">
+          <span class="font-medium">¿Puedo retirar en algún punto físico?</span>
+          <svg viewBox="0 0 24 24" class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="px-5 md:px-6 pb-5 text-sm text-muted leading-relaxed">
+          Sí, tenemos pickup point en Villa Crespo (CABA) — lunes a viernes 11 a
+          17 h. Elegí esa opción al checkout.
+        </div>
+      </details>
+    </div>
+  </section>
+</Layout>

@@ -3,11 +3,25 @@ import { useStore } from "@nanostores/preact";
 import { $cart, removeFromCart, setCantidad, clearCart } from "../../lib/cart";
 import { formatPrecio, SITE, calcularEnvio } from "../../lib/site";
 
+interface ProductRef {
+  slug: string;
+  nombre: string;
+  imagen: string;
+  imagen_alt: string;
+  precio: number;
+  stock: number;
+  categoria: string;
+}
+
+interface Props {
+  /** Catálogo chico para la grilla "Comprá más" cuando el carrito está vacío. */
+  recomendaciones?: ProductRef[];
+}
+
 /**
- * Vista completa del carrito. Se monta como client:only="preact"
- * porque depende 100% de localStorage (no se puede renderizar en SSR).
+ * Vista completa del carrito. Se monta como client:only="preact".
  */
-export default function CartView() {
+export default function CartView({ recomendaciones = [] }: Props) {
   const items = useStore($cart);
   const subtotal = items.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
   const envio = calcularEnvio(subtotal);
@@ -15,31 +29,72 @@ export default function CartView() {
 
   if (items.length === 0) {
     return (
-      <div class="text-center py-20 md:py-28">
-        <div class="display text-[44px] md:text-[64px] leading-[0.95] mb-4">
-          Tu carrito está vacío
+      <div>
+        <div class="text-center py-12 md:py-20">
+          <div class="display text-[44px] md:text-[64px] leading-[0.95] mb-4">
+            Tu carrito está vacío
+          </div>
+          <p class="text-muted max-w-[44ch] mx-auto mb-8 leading-relaxed">
+            Aún no agregaste productos. Te invitamos a recorrer nuestro catálogo de
+            velas, difusores, jabones y textiles hechos a mano.
+          </p>
+          <a href="/productos" class="btn-primary">
+            Explorar el catálogo
+            <svg
+              viewBox="0 0 24 24"
+              class="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path
+                d="M5 12h14M13 5l7 7-7 7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </svg>
+          </a>
         </div>
-        <p class="text-muted max-w-[44ch] mx-auto mb-8 leading-relaxed">
-          Aún no agregaste productos. Te invitamos a recorrer nuestro catálogo de
-          velas, difusores, jabones y textiles hechos a mano.
-        </p>
-        <a href="/productos" class="btn-primary">
-          Explorar el catálogo
-          <svg
-            viewBox="0 0 24 24"
-            class="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <path
-              d="M5 12h14M13 5l7 7-7 7"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ></path>
-          </svg>
-        </a>
+
+        {recomendaciones.length > 0 && (
+          <section aria-labelledby="h-sugerencias" class="mt-12 md:mt-16 border-t border-[var(--color-hairline)] pt-12 md:pt-16">
+            <div class="mb-8">
+              <div class="eyebrow mb-2">Comprá más</div>
+              <h2 id="h-sugerencias" class="display text-[24px] md:text-[32px] leading-[1]">
+                Empezá por lo más pedido
+              </h2>
+            </div>
+            <ul class="grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-7 gap-y-8">
+              {recomendaciones.slice(0, 4).map((p) => (
+                <li key={p.slug}>
+                  <a href={`/productos/${p.slug}`} class="block group">
+                    <div class="bezel-outer">
+                      <div class="bezel-inner overflow-hidden">
+                        <div class="aspect-[4/5] bg-linen">
+                          <img
+                            src={p.imagen}
+                            alt={p.imagen_alt}
+                            loading="lazy"
+                            class="w-full h-full object-cover transition-transform duration-[1200ms] ease-[var(--ease-fluid)] group-hover:scale-[1.04]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mt-3 px-1">
+                      <div class="display text-[16px] md:text-[18px] leading-tight truncate">
+                        {p.nombre}
+                      </div>
+                      <div class="text-sm text-muted tabular-nums mt-1">
+                        {formatPrecio(p.precio)}
+                      </div>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     );
   }
@@ -53,7 +108,7 @@ export default function CartView() {
             <li class="bezel-outer" key={it.slug}>
               <div class="bezel-inner flex items-stretch gap-3 md:gap-5 p-3 md:p-4">
                 <a
-                  href={`/productos/${it.slug}`}
+                  href={`/productos/${it.slug.split("__")[0]}`}
                   class="shrink-0 w-20 h-24 md:w-28 md:h-32 rounded-xl overflow-hidden bg-linen block"
                   aria-label={`Ver ${it.nombre}`}
                 >
@@ -67,7 +122,7 @@ export default function CartView() {
                 </a>
                 <div class="flex-1 min-w-0 flex flex-col gap-1.5 py-1">
                   <a
-                    href={`/productos/${it.slug}`}
+                    href={`/productos/${it.slug.split("__")[0]}`}
                     class="display text-[18px] md:text-[20px] leading-tight hover:text-forest transition-colors duration-300"
                   >
                     {it.nombre}
@@ -100,7 +155,7 @@ export default function CartView() {
                       aria-label={`Quitar ${it.nombre} del carrito`}
                     >
                       <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke-linecap="round" stroke-linejoin="round" />
                       </svg>
                       Quitar
                     </button>

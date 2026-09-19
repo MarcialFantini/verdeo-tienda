@@ -1,0 +1,128 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+
+const crumbs = [
+  { href: "/", label: "Inicio" },
+  { href: "/sobre-verdeo", label: "Sobre Verdeo" },
+];
+---
+
+<Layout
+  title="Sobre Verdeo"
+  description="La historia detrás de Verdeo: dos socias, tandas chicas y packaging compostable."
+>
+  <Breadcrumbs crumbs={crumbs} />
+
+  <section class="mx-auto max-w-[1400px] px-5 md:px-10 pt-8 pb-16 md:pb-24">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-end">
+      <div class="lg:col-span-8">
+        <div class="eyebrow mb-4">Nuestra historia · desde 2019</div>
+        <h1 class="display text-[44px] md:text-[80px] leading-[0.95]">
+          Empezamos en una cocina,
+          <span class="display-italic text-forest">seguimos en un taller.</span>
+        </h1>
+      </div>
+      <div class="lg:col-span-4 text-muted text-sm leading-relaxed max-w-[34ch]">
+        Micaela y Lucía, socias. Empezamos haciendo velas los domingos para
+        regalar y hoy despachamos a todo el país.
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 py-16 md:py-24">
+    <div class="prose-verdeo">
+      <p class="text-xl md:text-2xl text-ink leading-relaxed display">
+        Verdeo es una marca chiquita que se hace tiempo. Cada vela, jabón, difusor
+        o textil pasa por nuestras manos — y por las de un puñado de talleres
+        aliados en Buenos Aires, Córdoba y Mendoza.
+      </p>
+    </div>
+  </section>
+
+  <section class="bg-cream/60 border-y border-[var(--color-hairline)]">
+    <div class="mx-auto max-w-[1400px] px-5 md:px-10 py-20 md:py-32 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+      <div class="lg:col-span-5">
+        <div class="eyebrow mb-3">Cómo lo hacemos</div>
+        <h2 class="display text-[32px] md:text-[48px] leading-[1]">
+          Cinco cosas que no negociamos.
+        </h2>
+      </div>
+      <ul class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <li class="bezel-outer">
+          <div class="bezel-inner p-6 md:p-7">
+            <div class="display text-[40px] tabular-nums text-forest">01</div>
+            <h3 class="display text-[22px] mt-2 mb-2">Soja, no parafina</h3>
+            <p class="text-sm text-muted leading-relaxed">
+              Cera de soja certificada, sin parafinas. Arde más parejo y no
+              libera hollín.
+            </p>
+          </div>
+        </li>
+        <li class="bezel-outer">
+          <div class="bezel-inner p-6 md:p-7">
+            <div class="display text-[40px] tabular-nums text-forest">02</div>
+            <h3 class="display text-[22px] mt-2 mb-2">Algodón GOTS</h3>
+            <p class="text-sm text-muted leading-relaxed">
+              Todos nuestros textiles son algodón orgánico certificado GOTS o
+              lino belga. Tintes sin metales pesados.
+            </p>
+          </div>
+        </li>
+        <li class="bezel-outer">
+          <div class="bezel-inner p-6 md:p-7">
+            <div class="display text-[40px] tabular-nums text-forest">03</div>
+            <h3 class="display text-[22px] mt-2 mb-2">Aceites esenciales</h3>
+            <p class="text-sm text-muted leading-relaxed">
+              Sin fragancias sintéticas: cada aroma se construye con aceites
+              esenciales destilados.
+            </p>
+          </div>
+        </li>
+        <li class="bezel-outer">
+          <div class="bezel-inner p-6 md:p-7">
+            <div class="display text-[40px] tabular-nums text-forest">04</div>
+            <h3 class="display text-[22px] mt-2 mb-2">Tandas chicas</h3>
+            <p class="text-sm text-muted leading-relaxed">
+              Series de menos de cien unidades, fragancias que varian según
+              estación.
+            </p>
+          </div>
+        </li>
+        <li class="bezel-outer">
+          <div class="bezel-inner p-6 md:p-7">
+            <div class="display text-[40px] tabular-nums text-forest">05</div>
+            <h3 class="display text-[22px] mt-2 mb-2">Cero plástico</h3>
+            <p class="text-sm text-muted leading-relaxed">
+              Caja kraft, papel seda compostable, etiquetas con tinta soja.
+              Hasta el precinto de envíos es de papel engomado.
+            </p>
+          </div>
+        </li>
+        <li class="bezel-outer">
+          <div class="bezel-inner p-6 md:p-7">
+            <div class="display text-[40px] tabular-nums text-forest">06</div>
+            <h3 class="display text-[22px] mt-2 mb-2">Pago justo</h3>
+            <p class="text-sm text-muted leading-relaxed">
+              Nuestros proveedores de insumos cobran a 7 días, no a 90.
+              Pagamos el precio justo.
+            </p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1100px] px-5 md:px-10 py-20 md:py-32 text-center">
+    <div class="eyebrow mb-4 text-muted">Manifiesto</div>
+    <blockquote class="display-italic text-[28px] md:text-[44px] lg:text-[56px] leading-[1.2]">
+      “Creemos en los objetos que se hacen lento, con las manos, con tiempo.
+      Los que se eligen uno por uno. Los que duran.”
+    </blockquote>
+    <div class="mt-8 text-sm uppercase tracking-[0.22em] text-muted">
+      Micaela & Lucía · fundadoras
+    </div>
+  </section>
+</Layout>
