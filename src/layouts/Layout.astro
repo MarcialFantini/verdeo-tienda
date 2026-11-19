@@ -1,99 +1,239 @@
 ---
-import "../styles/global.css";
-import Header from "../components/Header.astro";
-import Footer from "../components/Footer.astro";
-import { SITE } from "../lib/site.ts";
+import { ClientRouter } from 'astro:transitions';
+import '../styles/global.css';
+import '../styles/shell.css';
+import '../styles/store.css';
+import '../styles/scenes.css';
+import '../styles/home.css';
+import '../styles/commerce.css';
+import '../styles/views.css';
+import Icon from '../components/Icon.astro';
+import { FABRICS, WOODS } from '../data/catalog';
 
 interface Props {
-  title?: string;
+  title: string;
   description?: string;
-  /** Imagen OG absoluta o ruta pública. Default: /og-image.svg */
-  ogImage?: string;
-  /** Tipo OG para esta página. Default: "website" */
-  ogType?: "website" | "product" | "article";
-  /** Añade clase opcional al <main> para páginas especiales. */
-  mainClass?: string;
+  view: string;
+  /** dark header text on a wood field (home) */
+  bare?: boolean;
 }
 
-const {
-  title = `${SITE.nombre} · ${SITE.tagline}`,
-  description = "Tienda online de velas de soja, difusores, jabones artesanales y textiles de algodón orgánico. Productos sustentables para el hogar.",
-  ogImage = "/og-image.svg",
-  ogType = "website",
-  mainClass = "",
-} = Astro.props;
----
+const { title, description = 'Muebles Río Luján: muebles de madera maciza hechos en Tucumán mientras los elegís. Demo de portfolio.', view } = Astro.props;
+const fullTitle = title === 'Inicio' ? 'Muebles Río Luján · Demo' : `${title} · Muebles Río Luján`;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 
+const materialCss = [
+  ...WOODS.map((w) => `[data-wood="${w.id}"]{--w1:${w.t};--w2:${w.l};--w3:${w.r}}`),
+  ...FABRICS.map((f) => `[data-fabric="${f.id}"]{--f1:${f.t};--f2:${f.l};--f3:${f.r}}`),
+].join('');
+
+const nav = [
+  { href: '/catalogo', label: 'Catálogo' },
+  { href: '/showroom', label: 'Showroom' },
+  { href: '/comparar', label: 'Comparar medidas' },
+  { href: '/pedido', label: 'Seguimiento' },
+];
+const tabs = [
+  { href: '/', label: 'Inicio', icon: 'home' as const },
+  { href: '/catalogo', label: 'Catálogo', icon: 'grid' as const },
+  { href: '/favoritos', label: 'Favoritos', icon: 'heart' as const },
+  { href: '/carrito', label: 'Carrito', icon: 'bag' as const },
+  { href: '/cuenta', label: 'Cuenta', icon: 'user' as const },
+];
+const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
 <!doctype html>
 <html lang="es-AR">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#f1ecdf" />
-    <meta name="generator" content={Astro.generator} />
-
-    <!-- Canonical: evita contenido duplicado entre paths con/sin slash, query strings, etc. -->
-    <link rel="canonical" href={Astro.url.href} />
-
-    <!-- Open Graph -->
-    <meta property="og:title" content={title} />
+    <meta name="theme-color" content="#f4efe6" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content={ogType} />
-    <meta property="og:image" content={ogImage} />
-    <meta property="og:url" content={Astro.url.href} />
-    <meta property="og:locale" content="es_AR" />
-    <meta property="og:site_name" content={SITE.nombre} />
-
-    <!-- Twitter Card -->
+    <meta property="og:image" content="/poster.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImage} />
-
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-
-    <!-- Fonts: self-hosted via @fontsource (importadas en global.css) -->
-    <title>{title}</title>
+    <link rel="preload" href="/fonts/instrument-serif-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/instrument-sans-var.woff2" as="font" type="font/woff2" crossorigin />
+    <style is:inline set:html={materialCss}></style>
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      if (new URLSearchParams(location.search).has('showcase')) document.documentElement.classList.add('showcase');
+    </script>
+    <ClientRouter fallback="swap" />
   </head>
-  <body class="grain antialiased">
-    <a
-      href="#contenido"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[70] focus:bg-forest focus:text-cream focus:px-4 focus:py-2 focus:rounded-full"
-    >
-      Saltar al contenido
-    </a>
+  <body data-view={view}>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
 
-    <Header />
+    <header class="site-header" transition:persist="header" transition:animate="none">
+      <div class="bar wrap">
+        <a class="brand" href="/">
+          <span class="brand-name">Río Luján</span>
+          <span class="demo-tag" title="Marca y datos ficticios">Demo</span>
+        </a>
+        <nav class="main-nav" aria-label="Principal">
+          {nav.map((item) => (
+            <a href={item.href} data-nav={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+        <div class="tools">
+          <button class="search-btn" type="button" data-action="palette" aria-keyshortcuts="Control+K Meta+K" aria-label="Buscar">
+            <Icon name="search" size={18} />
+            <span>Buscar</span>
+            <kbd class="kbd-hint" data-kbd-mod>Ctrl K</kbd>
+          </button>
+          <a class="icon-btn hide-sm" href="/favoritos" aria-label="Favoritos" data-wish-link>
+            <Icon name="heart" />
+            <span class="count-badge" data-wish-count hidden>0</span>
+          </a>
+          <button class="icon-btn" type="button" popovertarget="notices" aria-label="Notificaciones" data-bell>
+            <Icon name="bell" />
+            <span class="count-badge" data-unread hidden>0</span>
+          </button>
+          <a class="icon-btn" href="/carrito" aria-label="Carrito" data-cart-link>
+            <Icon name="bag" />
+            <span class="count-badge" data-cart-count hidden>0</span>
+          </a>
+          <a class="icon-btn hide-sm" href="/cuenta" aria-label="Mi cuenta">
+            <Icon name="user" />
+          </a>
+        </div>
+      </div>
+      <div class="ticker" data-ticker>
+        <div class="ticker-inner wrap">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="ticker-online"><strong class="num" data-online>84</strong> personas en la tienda</span>
+          <p class="ticker-feed" data-feed aria-live="off">
+            <span data-feed-text>Taller abierto en Tucumán.</span>
+          </p>
+          <div class="sim-controls" role="group" aria-label="Simulación en vivo">
+            <button type="button" class="sim-btn" data-action="sim-toggle" aria-pressed="false" aria-label="Pausar simulación" aria-keyshortcuts="P">
+              <span data-sim-icon="pause"><Icon name="pause" size={16} /></span>
+              <span data-sim-icon="play" hidden><Icon name="play" size={16} /></span>
+            </button>
+            <button type="button" class="sim-btn speed" data-action="sim-speed" aria-label="Velocidad de la simulación" aria-keyshortcuts=".">
+              <span class="num" data-speed>1×</span>
+            </button>
+            <span class="sim-clock num" data-sim-clock>Día 1 · 08:00</span>
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <main id="contenido" class={mainClass}>
+    <main id="main" tabindex="-1">
       <slot />
     </main>
 
-    <Footer />
+    <footer class="site-footer">
+      <div class="wrap">
+        <p class="footer-name" aria-hidden="true">Muebles Río Luján</p>
+        <div class="footer-line">
+          <p>Demo de portfolio. Marca, productos, personas y compras son ficticios; no se cobra nada.</p>
+          <nav aria-label="Pie de página" class="footer-links">
+            <a href="/catalogo">Catálogo</a>
+            <a href="/showroom">Showroom</a>
+            <a href="/favoritos">Favoritos</a>
+            <a href="/cuenta">Mi cuenta</a>
+            <a href="/?showcase">Modo vitrina</a>
+          </nav>
+          <div class="footer-actions">
+            <button type="button" class="link-btn" data-action="help">Atajos de teclado</button>
+            <button type="button" class="link-btn" data-action="reset">Reiniciar demo</button>
+          </div>
+        </div>
+      </div>
+    </footer>
 
-    <!-- IntersectionObserver para animaciones .reveal -->
-    <script is:inline>
-      (function () {
-        if (typeof window === "undefined") return;
-        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (reduce) {
-          document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
-          return;
-        }
-        const io = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                entry.target.classList.add("is-visible");
-                io.unobserve(entry.target);
-              }
-            });
-          },
-          { rootMargin: "0px 0px -10% 0px", threshold: 0.05 },
-        );
-        document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
-      })();
+    <nav class="tabbar" aria-label="Accesos rápidos" transition:persist="tabbar" transition:animate="none">
+      {tabs.map((tab) => (
+        <a href={tab.href} data-tab={tab.href} aria-current={isCurrent(tab.href) ? 'page' : undefined}>
+          <span class="tab-icon">
+            <Icon name={tab.icon} />
+            {tab.href === '/carrito' && <span class="count-badge" data-cart-count hidden>0</span>}
+            {tab.href === '/favoritos' && <span class="count-badge" data-wish-count hidden>0</span>}
+          </span>
+          <span>{tab.label}</span>
+        </a>
+      ))}
+    </nav>
+
+    <div transition:persist="overlays">
+      <div id="notices" popover class="notices" aria-label="Notificaciones">
+        <div class="notices-head">
+          <h2>Notificaciones</h2>
+          <button type="button" class="link-btn" data-action="read-all">Marcar todo leído</button>
+        </div>
+        <ul class="notices-list" data-notices></ul>
+      </div>
+
+      <dialog class="palette" data-palette aria-label="Buscar en la tienda">
+        <div class="palette-box">
+          <div class="palette-input">
+            <Icon name="search" size={20} />
+            <input
+              type="text"
+              data-palette-input
+              placeholder="Buscá muebles, páginas o acciones"
+              role="combobox"
+              aria-expanded="true"
+              aria-controls="palette-list"
+              aria-autocomplete="list"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <kbd>Esc</kbd>
+          </div>
+          <ul id="palette-list" role="listbox" class="palette-list" data-palette-list aria-label="Resultados"></ul>
+          <p class="palette-foot"><span>↑ ↓ para moverte</span><span>Enter para abrir</span></p>
+        </div>
+      </dialog>
+
+      <dialog class="sheet" data-help aria-labelledby="help-title">
+        <div class="sheet-box">
+          <div class="sheet-head">
+            <h2 id="help-title">Atajos de teclado</h2>
+            <button type="button" class="icon-btn" data-close aria-label="Cerrar"><Icon name="close" /></button>
+          </div>
+          <dl class="keys">
+            <div><dt><kbd data-kbd-mod>Ctrl K</kbd> o <kbd>/</kbd></dt><dd>Buscar y ejecutar acciones</dd></div>
+            <div><dt><kbd>?</kbd></dt><dd>Mostrar esta ayuda</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>I</kbd></dt><dd>Ir al inicio</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>C</kbd></dt><dd>Ir al catálogo</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>S</kbd></dt><dd>Ir al showroom</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>M</kbd></dt><dd>Comparar medidas</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>F</kbd></dt><dd>Ir a favoritos</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>B</kbd></dt><dd>Ir al carrito</dd></div>
+            <div><dt><kbd>G</kbd> <kbd>A</kbd></dt><dd>Ir a mi cuenta</dd></div>
+            <div><dt><kbd>N</kbd></dt><dd>Abrir notificaciones</dd></div>
+            <div><dt><kbd>P</kbd></dt><dd>Pausar o reanudar la simulación</dd></div>
+            <div><dt><kbd>.</kbd></dt><dd>Cambiar la velocidad (1×, 2×, 4×)</dd></div>
+            <div><dt><kbd>Esc</kbd></dt><dd>Cerrar diálogos</dd></div>
+          </dl>
+        </div>
+      </dialog>
+
+      <dialog class="sheet" data-reset aria-labelledby="reset-title">
+        <form method="dialog" class="sheet-box">
+          <div class="sheet-head">
+            <h2 id="reset-title">¿Reiniciar la demo?</h2>
+          </div>
+          <p>Se vacían el carrito, los favoritos, los pedidos y las notificaciones, y la simulación vuelve al día 1.</p>
+          <div class="sheet-actions">
+            <button class="btn ghost" value="cancel">Cancelar</button>
+            <button class="btn" value="confirm" data-reset-confirm>Reiniciar</button>
+          </div>
+        </form>
+      </dialog>
+
+      <div class="toasts" data-toasts></div>
+      <div class="sr-only" aria-live="polite" data-announce></div>
+    </div>
+
+    <script>
+      import '../scripts/shell';
     </script>
   </body>
 </html>

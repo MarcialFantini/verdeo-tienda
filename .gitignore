@@ -34,3 +34,7 @@ Thumbs.db
 data/leads.json
 
 .vercel
+
+# Local QA artefacts
+.shots/
+.taste-skill/

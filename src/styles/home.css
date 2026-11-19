@@ -1,0 +1,287 @@
+/* ---------- Home: split stage hero ---------- */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+.split-read {
+  padding-inline: var(--gutter) clamp(24px, 4vw, 72px);
+}
+.hero-copy {
+  min-height: calc(100svh - var(--header-h) - var(--ticker-h));
+  display: grid;
+  align-content: center;
+  gap: 28px;
+  padding: 48px 0;
+}
+.hero-copy h1 {
+  font-size: clamp(3.5rem, 1.5rem + 4.3vw, 6.25rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+}
+.hero-sub {
+  max-width: 40ch;
+  font-size: 1.1875rem;
+  line-height: 1.5;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+}
+.hero-facts {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+  gap: 2px;
+  margin: 12px 0 0;
+}
+.hero-facts div {
+  background: var(--paper-2);
+  padding: 12px 18px;
+}
+.hero-facts dt {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.hero-facts dd {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.1;
+}
+.cfg-block {
+  min-height: calc(100svh - var(--header-h) - var(--ticker-h));
+  display: grid;
+  align-content: center;
+  gap: 24px;
+  padding: 64px 0 96px;
+  max-width: 600px;
+}
+.cfg-block h2 {
+  font-size: var(--step-3);
+}
+.split-stage {
+  background: var(--wood);
+}
+.stage-panel {
+  --k: 0;
+  position: sticky;
+  top: calc(var(--header-h) + var(--ticker-h));
+  height: calc(100svh - var(--header-h) - var(--ticker-h));
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+.js .stage-panel {
+  --k: 1;
+}
+.stage-panel {
+  overflow: hidden;
+}
+.stage-panel .furniture {
+  position: absolute;
+  inset: 0 0 56px 0;
+  width: auto;
+  height: auto;
+  padding: clamp(16px, 2.5vw, 40px);
+}
+.explodable g[style] {
+  transform: translate(calc(var(--ex) * var(--k)), calc(var(--ey) * var(--k)));
+  will-change: transform;
+}
+.stage-bar {
+  grid-row: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  height: 56px;
+  padding: 0 var(--gutter);
+  background: var(--paper);
+  font-size: 0.9375rem;
+}
+.stage-bar strong {
+  font-weight: 700;
+}
+
+/* ---------- Home sections ---------- */
+.home-room {
+  margin-top: var(--section);
+}
+.home-production {
+  margin-top: var(--section);
+}
+.home-box {
+  background: var(--wood);
+  padding: clamp(64px, 9vw, 140px) 0;
+}
+.box-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(24px, 5vw, 80px);
+  align-items: center;
+}
+.box-copy {
+  display: grid;
+  gap: 20px;
+  justify-items: start;
+}
+.box-copy h2 {
+  font-size: var(--step-3);
+}
+.home-ship .ship-panel .field select {
+  background: var(--paper);
+}
+.home-ship {
+  background: var(--paper-2);
+  padding-block: clamp(56px, 7vw, 112px);
+  max-width: none;
+}
+.home-ship > * {
+  max-width: 1392px;
+  margin-inline: auto;
+}
+
+/* The printed menu sheet */
+.home-lines {
+  background: var(--green);
+  padding: clamp(48px, 7vw, 112px) 10px;
+}
+.sheet-paper {
+  --scallop: 12px;
+  width: min(680px, 100%);
+  margin-inline: auto;
+  background: var(--paper);
+  padding: calc(64px + var(--scallop)) 64px calc(64px + var(--scallop));
+  text-align: center;
+  -webkit-mask:
+    radial-gradient(var(--scallop) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--scallop) * 2.4) 51% repeat-x, /* taste-skill-ignore: scalloped paper edge mask, not a fill */
+    radial-gradient(var(--scallop) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--scallop) * 2.4) 51% repeat-x; /* taste-skill-ignore: scalloped paper edge mask, not a fill */
+  mask:
+    radial-gradient(var(--scallop) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--scallop) * 2.4) 51% repeat-x, /* taste-skill-ignore: scalloped paper edge mask, not a fill */
+    radial-gradient(var(--scallop) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--scallop) * 2.4) 51% repeat-x; /* taste-skill-ignore: scalloped paper edge mask, not a fill */
+}
+.sheet-paper h2 {
+  font-size: clamp(2.5rem, 2rem + 2vw, 3rem);
+}
+.sheet-note {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  margin: 10px auto 0;
+  max-width: 44ch;
+}
+.sheet-group {
+  margin-top: 56px;
+}
+.sheet-group h3 {
+  font-size: 1.625rem;
+  margin-bottom: 18px;
+}
+.sheet-group ul {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 440px;
+  display: grid;
+  gap: 16px;
+  text-align: left;
+}
+.sheet-group a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 16px;
+  text-decoration: none;
+}
+.sheet-group a:hover .sheet-name {
+  text-decoration: underline;
+}
+.sheet-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.sheet-price {
+  font-weight: 600;
+}
+.sheet-desc {
+  grid-column: 1 / -1;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.sheet-paper .btn {
+  margin-top: 56px;
+}
+
+@media (max-width: 960px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .split-stage {
+    order: -1;
+    position: sticky;
+    top: calc(var(--header-h) + var(--ticker-h));
+    z-index: 3;
+    height: 40svh;
+  }
+  .stage-panel {
+    position: relative;
+    top: 0;
+    height: 40svh;
+  }
+  .stage-panel .furniture {
+    bottom: 44px;
+    padding: 20px;
+  }
+  .stage-bar {
+    height: 44px;
+    font-size: 0.8125rem;
+  }
+  .stage-bar span:last-child {
+    display: none;
+  }
+  .split-read {
+    position: relative;
+    z-index: 1;
+    background: var(--paper);
+    padding-inline: var(--gutter);
+  }
+  .hero-copy {
+    min-height: 0;
+    padding: 32px 0 40px;
+    gap: 20px;
+  }
+  .hero-copy h1 {
+    font-size: clamp(3rem, 13vw, 4.5rem);
+  }
+  .hero-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .hero-facts div {
+    padding: 10px 12px;
+  }
+  .hero-facts dd {
+    font-size: 1.25rem;
+  }
+  .cfg-block {
+    min-height: 0;
+    padding: 40px 0 64px;
+  }
+  .box-grid {
+    grid-template-columns: 1fr;
+  }
+  .box-scene {
+    order: -1;
+  }
+}
+@media (max-width: 760px) {
+  .sheet-paper {
+    padding: calc(28px + var(--scallop)) 28px;
+  }
+  .sheet-group {
+    margin-top: 40px;
+  }
+  .sheet-group h3 {
+    font-size: 1.25rem;
+  }
+  .sheet-group ul {
+    max-width: none;
+  }
+}

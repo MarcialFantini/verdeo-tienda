@@ -1,0 +1,204 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import Icon from '../components/Icon.astro';
+import { PRODUCTS, ROOMS, WOODS } from '../data/catalog';
+
+const roomCounts = Object.fromEntries(
+  Object.keys(ROOMS).map((r) => [r, PRODUCTS.filter((p) => p.room === r).length]),
+);
+---
+<Layout title="Catálogo" view="catalog" description="Sesenta muebles de madera maciza con filtros por ambiente y material.">
+  <div class="catalog wrap" data-catalog>
+    <header class="catalog-head">
+      <h1>Catálogo</h1>
+      <p class="lede">Sesenta muebles en doce líneas con nombre de pueblo tucumano. Cada uno se fabrica cuando lo pedís.</p>
+    </header>
+
+    <div class="catalog-tools">
+      <button class="btn ghost small filters-toggle" type="button" aria-expanded="false" aria-controls="filters" data-filters-toggle>
+        Filtros <span class="num" data-filter-count></span>
+      </button>
+      <form class="filters" id="filters" data-filters role="search" aria-label="Filtrar catálogo">
+        <fieldset class="seg" aria-label="Ambiente">
+          <legend class="sr-only">Ambiente</legend>
+          <label class="seg-item"><input type="radio" name="ambiente" value="" checked /><span>Todos <small class="num">{PRODUCTS.length}</small></span></label>
+          {Object.entries(ROOMS).map(([id, name]) => (
+            <label class="seg-item"><input type="radio" name="ambiente" value={id} /><span>{name} <small class="num">{roomCounts[id]}</small></span></label>
+          ))}
+        </fieldset>
+        <fieldset class="choices" aria-label="Madera">
+          <legend class="sr-only">Madera</legend>
+          {WOODS.map((w) => (
+            <label class="choice"><input type="checkbox" name="madera" value={w.id} /><span><i style={`--sw:${w.t}`}></i>{w.name}</span></label>
+          ))}
+          <label class="choice"><input type="checkbox" name="tapizado" value="si" /><span>Con tapizado</span></label>
+        </fieldset>
+        <div class="filter-row">
+          <label class="field search-field">
+            <span class="sr-only">Buscar por nombre</span>
+            <input type="search" name="q" placeholder="Buscar por nombre o línea" autocomplete="off" />
+          </label>
+          <label class="field sort-field">
+            <span class="sr-only">Ordenar</span>
+            <select name="orden">
+              <option value="destacados">Destacados</option>
+              <option value="vendidos">Más vendidos ahora</option>
+              <option value="precio-asc">Precio: menor a mayor</option>
+              <option value="precio-desc">Precio: mayor a menor</option>
+              <option value="rapidos">Fabricación más corta</option>
+              <option value="nuevos">Novedades primero</option>
+            </select>
+          </label>
+          <button type="reset" class="link-btn" data-clear>Limpiar</button>
+        </div>
+      </form>
+    </div>
+
+    <p class="result-count" aria-live="polite" data-result-count>Mostrando {PRODUCTS.length} muebles</p>
+
+    <h2 class="sr-only">Resultados</h2>
+    <div class="grid" data-grid>
+      {PRODUCTS.map((p) => <ProductCard product={p} />)}
+    </div>
+
+    <div class="empty-state" data-empty hidden>
+      <Icon name="search" size={28} />
+      <h2>Nada con esos filtros</h2>
+      <p>Probá con otra madera o volvé a ver todo el catálogo.</p>
+      <button class="btn" type="button" data-clear-all>Ver todo</button>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { idle, mount, prefersReducedMotion } from '../lib/page';
+  import { loadFlip } from '../lib/gsap';
+  import { normalize } from '../lib/format';
+  import { getState } from '../lib/store';
+  import { stockOf } from '../lib/sim';
+
+  mount<HTMLElement>('[data-catalog]', (root) => {
+    const form = root.querySelector<HTMLFormElement>('[data-filters]');
+    const grid = root.querySelector<HTMLElement>('[data-grid]');
+    const count = root.querySelector<HTMLElement>('[data-result-count]');
+    const empty = root.querySelector<HTMLElement>('[data-empty]');
+    const toggle = root.querySelector<HTMLButtonElement>('[data-filters-toggle]');
+    const filterCount = root.querySelector<HTMLElement>('[data-filter-count]');
+    if (!form || !grid || !count || !empty) return;
+    const cards = Array.from(grid.querySelectorAll<HTMLElement>('[data-card]'));
+    const reduced = prefersReducedMotion();
+    let flip: Awaited<ReturnType<typeof loadFlip>> | null = null;
+    const warm = () => {
+      if (!flip) void loadFlip().then((m) => {
+        flip = m;
+      });
+    };
+    form.addEventListener('pointerenter', warm, { once: true });
+    form.addEventListener('focusin', warm, { once: true });
+    idle(warm, 4000);
+
+    // Restore filters from the URL.
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get('ambiente') ?? '';
+    form.querySelectorAll<HTMLInputElement>('input[name="ambiente"]').forEach((i) => {
+      i.checked = i.value === room;
+    });
+    const woods = (params.get('madera') ?? '').split(',').filter(Boolean);
+    form.querySelectorAll<HTMLInputElement>('input[name="madera"]').forEach((i) => {
+      i.checked = woods.includes(i.value);
+    });
+    const tap = form.querySelector<HTMLInputElement>('input[name="tapizado"]');
+    if (tap) tap.checked = params.get('tapizado') === 'si';
+    const q = form.querySelector<HTMLInputElement>('input[name="q"]');
+    if (q) q.value = params.get('q') ?? '';
+    const sort = form.querySelector<HTMLSelectElement>('select[name="orden"]');
+    if (sort && params.get('orden')) sort.value = params.get('orden') ?? 'destacados';
+
+    function apply(animate: boolean): void {
+      if (!form || !grid || !count || !empty) return;
+      const data = new FormData(form);
+      const roomValue = String(data.get('ambiente') ?? '');
+      const woodValues = data.getAll('madera').map(String);
+      const needsFabric = data.get('tapizado') === 'si';
+      const query = normalize(String(data.get('q') ?? '').trim());
+      const order = String(data.get('orden') ?? 'destacados');
+
+      const state = flip && animate && !reduced ? flip.Flip.getState(cards) : null;
+
+      const visible = cards.filter((card) => {
+        const okRoom = !roomValue || card.dataset['room'] === roomValue;
+        const cardWoods = (card.dataset['woods'] ?? '').split(' ');
+        const okWood = !woodValues.length || woodValues.some((w) => cardWoods.includes(w));
+        const okFabric = !needsFabric || card.dataset['fabric'] === 'si';
+        const okQuery = !query || normalize(card.dataset['name'] ?? '').includes(query);
+        const show = okRoom && okWood && okFabric && okQuery;
+        card.hidden = !show;
+        return show;
+      });
+
+      const num = (c: HTMLElement, k: string) => Number(c.dataset[k] ?? 0);
+      const s = getState();
+      const sorted = [...cards].sort((a, b) => {
+        switch (order) {
+          case 'precio-asc': return num(a, 'price') - num(b, 'price');
+          case 'precio-desc': return num(b, 'price') - num(a, 'price');
+          case 'rapidos': return num(a, 'days') - num(b, 'days') || num(a, 'order') - num(b, 'order');
+          case 'nuevos': return num(b, 'new') - num(a, 'new') || num(a, 'order') - num(b, 'order');
+          case 'vendidos': {
+            const sold = (c: HTMLElement) => (s.sim.sold[c.dataset['id'] ?? ''] ?? 0) + num(c, 'pop') * 2 - stockOf(c.dataset['id'] ?? '', s) * 0.01;
+            return sold(b) - sold(a);
+          }
+          default: return num(b, 'pop') - num(a, 'pop');
+        }
+      });
+      sorted.forEach((c) => grid.append(c));
+
+      count.textContent = visible.length === cards.length
+        ? `Mostrando ${cards.length} muebles`
+        : `${visible.length} de ${cards.length} muebles`;
+      empty.hidden = visible.length > 0;
+      const active = (roomValue ? 1 : 0) + woodValues.length + (needsFabric ? 1 : 0) + (query ? 1 : 0);
+      if (filterCount) filterCount.textContent = active ? `(${active})` : '';
+
+      const next = new URLSearchParams();
+      if (roomValue) next.set('ambiente', roomValue);
+      if (woodValues.length) next.set('madera', woodValues.join(','));
+      if (needsFabric) next.set('tapizado', 'si');
+      if (query) next.set('q', String(data.get('q')));
+      if (order !== 'destacados') next.set('orden', order);
+      const qs = next.toString();
+      history.replaceState(history.state, '', qs ? `?${qs}` : window.location.pathname);
+
+      if (state && flip) {
+        flip.Flip.from(state, {
+          duration: 0.6,
+          ease: 'power3.inOut',
+          absolute: true,
+          stagger: 0.012,
+          onEnter: (els) => flip?.gsap.fromTo(els, { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.45 }),
+          onLeave: (els) => flip?.gsap.to(els, { opacity: 0, scale: 0.92, duration: 0.3 }),
+        });
+      }
+    }
+
+    let debounce = 0;
+    const onChange = (event: Event) => {
+      const isText = (event.target as HTMLElement).matches('input[type="search"]');
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => apply(true), isText ? 220 : 0);
+    };
+    form.addEventListener('input', onChange);
+    form.addEventListener('submit', (e) => e.preventDefault());
+    form.addEventListener('reset', () => window.setTimeout(() => apply(true), 0));
+    root.querySelector('[data-clear-all]')?.addEventListener('click', () => form.reset());
+    toggle?.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(open));
+      form.classList.toggle('open', open);
+    });
+
+    apply(false);
+    return () => window.clearTimeout(debounce);
+  });
+</script>

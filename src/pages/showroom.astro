@@ -1,0 +1,136 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import { ROOMS, getProduct, getSize, getWood, priceFor, type Room } from '../data/catalog';
+import { boxesMarkup, buildShape, project } from '../lib/iso';
+import { formatPrice } from '../lib/format';
+
+interface Placed { id: string; x: number; y: number; wood: string; fabric: string | null }
+interface Look { room: Room; title: string; text: string; wood: string; pieces: Placed[]; wall: string; floor: string }
+
+const rawLooks: Look[] = [
+  { room: 'living', title: 'Living en cedro', text: 'Sillón de dos cuerpos en pana verde, mesa ratona baja y un aparador para el tocadiscos.', wood: 'cedro', wall: '#ece5d8', floor: '#d9c09a',
+    pieces: [{ id: 'rl-002', x: 10, y: 4, wood: 'cedro', fabric: 'pana' }, { id: 'rl-006', x: 190, y: 4, wood: 'cedro', fabric: null }, { id: 'rl-005', x: 40, y: 160, wood: 'cedro', fabric: null }] },
+  { room: 'comedor', title: 'Comedor Lules en paraíso', text: 'Mesa para seis con sillas tapizadas en lino crudo: madera clara para un comedor con sol de tarde.', wood: 'paraiso', wall: '#efe8dc', floor: '#dcc5a2',
+    pieces: [{ id: 'rl-011', x: 100, y: 50, wood: 'paraiso', fabric: 'lino' }, { id: 'rl-011', x: 160, y: 50, wood: 'paraiso', fabric: 'lino' }, { id: 'rl-011', x: 220, y: 50, wood: 'paraiso', fabric: 'lino' }, { id: 'rl-014', x: 80, y: 110, wood: 'paraiso', fabric: null }] },
+  { room: 'dormitorio', title: 'Dormitorio Raco en nogal', text: 'Cama de dos plazas con respaldo macizo y dos mesas de luz, en la madera más oscura del taller.', wood: 'nogal', wall: '#e6ddcf', floor: '#cfb48c',
+    pieces: [{ id: 'rl-010', x: 30, y: 4, wood: 'nogal', fabric: null }, { id: 'rl-009', x: 90, y: 4, wood: 'nogal', fabric: 'boucle' }, { id: 'rl-010', x: 255, y: 4, wood: 'nogal', fabric: null }] },
+  { room: 'estudio', title: 'Estudio Amaicha en guatambú', text: 'Escritorio amplio, biblioteca y una banqueta: todo casi blanco, para leer con buena luz.', wood: 'guatambu', wall: '#eee8de', floor: '#dcc7a6',
+    pieces: [{ id: 'rl-018', x: 20, y: 4, wood: 'guatambu', fabric: null }, { id: 'rl-017', x: 240, y: 2, wood: 'guatambu', fabric: null }, { id: 'rl-003', x: 90, y: 150, wood: 'guatambu', fabric: 'piedra' }] },
+];
+
+// Keep every piece on a wood and fabric the product really offers.
+const looks: Look[] = rawLooks.map((look) => ({
+  ...look,
+  pieces: look.pieces.map((pc) => {
+    const p = getProduct(pc.id);
+    if (!p) return pc;
+    const wood = p.woods.includes(pc.wood) ? pc.wood : p.defaultWood;
+    const fabric = pc.fabric && p.fabrics.includes(pc.fabric) ? pc.fabric : p.defaultFabric;
+    return { ...pc, wood, fabric };
+  }),
+}));
+
+const W = 360;
+const D = 300;
+const H = 150;
+const pt = (x: number, y: number, z: number) => project(x, y, z).map((n) => n.toFixed(1)).join(',');
+const poly = (list: [number, number, number][]) => list.map(([x, y, z]) => pt(x, y, z)).join(' ');
+const [minX] = project(0, D, 0);
+const [maxX] = project(W, 0, 0);
+const [, minY] = project(0, 0, H);
+const [, maxY] = project(W, D, 0);
+const viewBox = `${Math.floor(minX - 12)} ${Math.floor(minY - 12)} ${Math.ceil(maxX - minX + 24)} ${Math.ceil(maxY - minY + 24)}`;
+
+function sceneMarkup(look: Look): string {
+  const pieces = look.pieces
+    .map((pc) => ({ pc, p: getProduct(pc.id) }))
+    .filter((x): x is { pc: Placed; p: NonNullable<ReturnType<typeof getProduct>> } => !!x.p)
+    .sort((a, b) => a.pc.x + a.pc.y - (b.pc.x + b.pc.y));
+  return pieces
+    .map(({ pc, p }) => {
+      const [tx, ty] = project(pc.x, pc.y, 0);
+      return `<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)})" data-wood="${pc.wood}" data-fabric="${pc.fabric ?? ''}">${boxesMarkup(buildShape(p.kind, getSize(p.kind, 'm')))}</g>`;
+    })
+    .join('');
+}
+const uniq = (look: Look) => [...new Map(look.pieces.map((pc) => [pc.id, pc])).values()];
+---
+<Layout title="Showroom" view="showroom" description="Cuatro ambientes armados con muebles del catálogo.">
+  <div class="showroom" data-showroom>
+    <header class="page-head wrap">
+      <h1>Showroom</h1>
+      <p class="lede">Cuatro ambientes armados en el taller. Cada pieza se puede comprar sola o el ambiente completo, con las mismas maderas y telas.</p>
+    </header>
+
+    {looks.map((look, i) => {
+      const items = uniq(look);
+      const total = look.pieces.reduce((n, pc) => {
+        const p = getProduct(pc.id);
+        return p ? n + priceFor(p, { wood: pc.wood, fabric: pc.fabric, size: 'm' }) : n;
+      }, 0);
+      return (
+        <section class:list={['look', { flip: i % 2 === 1 }]} aria-labelledby={`look-${look.room}`} data-look={JSON.stringify(look.pieces)}>
+          <div class="look-stage">
+            <svg class="iso look-svg" viewBox={viewBox} role="img" aria-label={`${look.title}: ${items.map((pc) => getProduct(pc.id)?.name).join(', ')}`}>
+              <polygon points={poly([[0, 0, 0], [W, 0, 0], [W, 0, H], [0, 0, H]])} style={`fill:${look.wall}`} />
+              <polygon points={poly([[0, 0, 0], [0, D, 0], [0, D, H], [0, 0, H]])} style={`fill:${look.wall};filter:brightness(0.95)`} />
+              <polygon points={poly([[0, 0, 0], [W, 0, 0], [W, D, 0], [0, D, 0]])} style={`fill:${look.floor}`} />
+              <polygon points={poly([[40, 0, 70], [140, 0, 70], [140, 0, 140], [40, 0, 140]])} class="room-window" />
+              <polygon points={poly([[40, 0, 70], [80, 0, 104], [110, 0, 92], [140, 0, 112], [140, 0, 70]])} class="room-hill" />
+              <Fragment set:html={sceneMarkup(look)} />
+            </svg>
+          </div>
+          <div class="look-copy">
+            <p class="look-room">{ROOMS[look.room]} · {getWood(look.wood).name}</p>
+            <h2 id={`look-${look.room}`}>{look.title}</h2>
+            <p>{look.text}</p>
+            <ul class="look-items">
+              {items.map((pc) => {
+                const p = getProduct(pc.id)!;
+                const count = look.pieces.filter((x) => x.id === pc.id).length;
+                return (
+                  <li>
+                    <a href={`/producto/${p.slug}?madera=${pc.wood}${pc.fabric ? `&tela=${pc.fabric}` : ''}`}>{p.name}{count > 1 ? ` × ${count}` : ''}</a>
+                    <span class="num">{formatPrice(priceFor(p, { wood: pc.wood, fabric: pc.fabric, size: 'm' }) * count)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p class="look-total"><span>El ambiente completo</span><span class="serif num">{formatPrice(total)}</span></p>
+            <button class="btn" type="button" data-buy-look><Icon name="bag" size={20} /> Agregar el ambiente al carrito</button>
+          </div>
+        </section>
+      );
+    })}
+  </div>
+</Layout>
+
+<script>
+  import { mount } from '../lib/page';
+  import { getProduct, priceFor } from '../data/catalog';
+  import { addToCart } from '../lib/store';
+  import { announce, toast } from '../lib/ui';
+
+  mount<HTMLElement>('[data-showroom]', (root) => {
+    const onClick = (event: Event) => {
+      const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-buy-look]');
+      if (!btn) return;
+      const look = btn.closest<HTMLElement>('[data-look]');
+      const pieces = JSON.parse(look?.dataset['look'] ?? '[]') as { id: string; wood: string; fabric: string | null }[];
+      let count = 0;
+      pieces.forEach((pc) => {
+        const p = getProduct(pc.id);
+        if (!p) return;
+        const sel = { wood: pc.wood, fabric: pc.fabric, size: 'm' as const };
+        addToCart({ productId: p.id, wood: sel.wood, fabric: sel.fabric, size: sel.size, unitPrice: priceFor(p, sel) });
+        count++;
+      });
+      const title = look?.querySelector('h2')?.textContent ?? 'Ambiente';
+      toast({ title: `${title} en tu carrito`, body: `${count} piezas agregadas.`, href: '/carrito' });
+      announce(`${count} piezas agregadas al carrito.`);
+    };
+    root.addEventListener('click', onClick);
+    return () => root.removeEventListener('click', onClick);
+  });
+</script>

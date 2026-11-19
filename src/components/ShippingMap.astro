@@ -1,0 +1,138 @@
+---
+/**
+ * "Envío": a map of Argentina; a truck leaves the workshop in Tucumán for the chosen province.
+ * The select is the accessible control; the list below gives every lead time as text.
+ */
+import { MAP_H, MAP_W, ORIGIN, OUTLINE_PATH, PROVINCES, projectGeo, routePath, shippingQuote } from '../data/argentina';
+import { formatPrice } from '../lib/format';
+
+interface Props {
+  id: string;
+  initial?: string;
+  compact?: boolean;
+}
+const { id, initial = 'cordoba', compact = false } = Astro.props;
+const quote = shippingQuote(initial);
+const [ox, oy] = projectGeo(ORIGIN.lon, ORIGIN.lat);
+const quotes = PROVINCES.map((p) => ({ p, q: shippingQuote(p.id), xy: projectGeo(p.lon, p.lat) }));
+---
+<div class:list={['ship', { compact }]} data-ship={id} data-initial={initial}>
+  <div class="ship-panel">
+    <label class="field">
+      <span class="label">Provincia de destino</span>
+      <select data-ship-select>
+        {PROVINCES.map((p) => <option value={p.id} selected={p.id === initial}>{p.name}</option>)}
+      </select>
+    </label>
+    <p class="ship-days serif num"><span data-ship-days>{quote.days}</span> <span class="unit" data-ship-unit>{quote.days === 1 ? 'día' : 'días'}</span></p>
+    <p class="ship-detail" aria-live="polite" data-ship-detail>
+      De Tucumán a {quote.province.capital}: {quote.km} km por ruta. Envío {quote.cost ? formatPrice(quote.cost) : 'sin cargo'}.
+    </p>
+    {!compact && (
+      <details class="ship-all">
+        <summary>Plazos a todas las provincias</summary>
+        <ul>
+          {quotes.map(({ p, q }) => (
+            <li><span>{p.name}</span><span class="num">{q.days} {q.days === 1 ? 'día' : 'días'} · {q.cost ? formatPrice(q.cost) : 'sin cargo'}</span></li>
+          ))}
+        </ul>
+      </details>
+    )}
+  </div>
+  <svg class="map" viewBox={`0 0 ${MAP_W} ${MAP_H}`} role="img" aria-label="Mapa de Argentina con la ruta del camión desde Tucumán">
+    <path d={OUTLINE_PATH} class="map-land" />
+    {quotes.map(({ p, xy }) => (
+      <circle cx={xy[0]} cy={xy[1]} r={p.id === ORIGIN.id ? 7 : 4} class:list={['map-dot', { origin: p.id === ORIGIN.id }]} data-dot={p.id} />
+    ))}
+    <path d={routePath(initial)} class="map-route" data-route pathLength="1" />
+    <text x={ox + 12} y={oy + 4} class="map-label">Taller, Tucumán</text>
+    <text class="map-label dest" data-dest-label x="0" y="0"></text>
+    <g data-truck class="truck" transform={`translate(${ox} ${oy})`}>
+      <g transform="translate(-14 -12)">
+        <rect x="0" y="4" width="18" height="12" class="truck-box" />
+        <rect x="18" y="8" width="9" height="8" class="truck-cab" />
+        <circle cx="6" cy="18" r="3" class="truck-wheel" />
+        <circle cx="22" cy="18" r="3" class="truck-wheel" />
+      </g>
+    </g>
+  </svg>
+</div>
+
+<script>
+  import { mount, prefersReducedMotion, whenVisible } from '../lib/page';
+  import { PROVINCES, projectGeo, routePath, shippingQuote } from '../data/argentina';
+  import { formatPrice } from '../lib/format';
+  import { loadMotionPath } from '../lib/gsap';
+  import { getState, update } from '../lib/store';
+
+  mount<HTMLElement>('[data-ship]', (root) => {
+    const select = root.querySelector<HTMLSelectElement>('[data-ship-select]');
+    const route = root.querySelector<SVGPathElement>('[data-route]');
+    const truck = root.querySelector<SVGGElement>('[data-truck]');
+    const daysEl = root.querySelector<HTMLElement>('[data-ship-days]');
+    const unitEl = root.querySelector<HTMLElement>('[data-ship-unit]');
+    const detail = root.querySelector<HTMLElement>('[data-ship-detail]');
+    const destLabel = root.querySelector<SVGTextElement>('[data-dest-label]');
+    const dots = Array.from(root.querySelectorAll<SVGCircleElement>('[data-dot]'));
+    const reduced = prefersReducedMotion();
+    if (!select || !route || !truck) return;
+    let tween: { kill: () => void } | null = null;
+
+    const persisted = root.dataset['initial'] === 'state';
+    if (persisted) select.value = getState().province;
+
+    async function go(provinceId: string, animate: boolean): Promise<void> {
+      if (!route || !truck) return;
+      const q = shippingQuote(provinceId);
+      route.setAttribute('d', routePath(provinceId));
+      dots.forEach((d) => d.classList.toggle('dest', d.dataset['dot'] === provinceId));
+      const [dx, dy] = projectGeo(q.province.lon, q.province.lat);
+      if (destLabel) {
+        destLabel.textContent = q.province.id === 'tucuman' ? '' : q.province.name;
+        const right = dx < 200;
+        destLabel.setAttribute('x', String(right ? dx + 12 : dx - 12));
+        destLabel.setAttribute('y', String(dy + 4));
+        destLabel.setAttribute('text-anchor', right ? 'start' : 'end');
+      }
+      if (detail) detail.textContent = `De Tucumán a ${q.province.capital}: ${q.km} km por ruta. Envío ${q.cost ? formatPrice(q.cost) : 'sin cargo'}.`;
+      if (unitEl) unitEl.textContent = q.days === 1 ? 'día' : 'días';
+      const { gsap } = await loadMotionPath();
+      tween?.kill();
+      if (!animate || reduced) {
+        gsap.set(truck, { motionPath: { path: route, align: route, alignOrigin: [0.5, 0.5], start: 1, end: 1 } });
+        gsap.set(route, { strokeDashoffset: 0 });
+        if (daysEl) daysEl.textContent = String(q.days);
+        return;
+      }
+      const counter = { d: 0 };
+      const tl = gsap.timeline();
+      tl.fromTo(route, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.6 + q.days * 0.08, ease: 'power1.inOut' }, 0)
+        .fromTo(truck, { opacity: 0 }, { opacity: 1, duration: 0.2 }, 0)
+        .to(truck, { duration: 1.6 + q.days * 0.08, ease: 'power1.inOut', motionPath: { path: route, align: route, alignOrigin: [0.5, 0.5] } }, 0)
+        .to(counter, { d: q.days, duration: 1.6 + q.days * 0.08, ease: 'power1.inOut', onUpdate: () => {
+          if (daysEl) daysEl.textContent = String(Math.max(1, Math.round(counter.d)));
+        } }, 0);
+      tween = tl;
+    }
+
+    select.addEventListener('change', () => {
+      if (persisted) update((s) => {
+        s.province = select.value;
+      });
+      void go(select.value, true);
+    });
+    root.addEventListener('ship:go', (event) => {
+      const id = (event as CustomEvent<string>).detail;
+      if (!PROVINCES.some((p) => p.id === id)) return;
+      select.value = id;
+      void go(id, true);
+    });
+    const stop = whenVisible(root, () => {
+      void go(select.value, true);
+    }, '-15% 0px');
+    return () => {
+      stop();
+      tween?.kill();
+    };
+  });
+</script>

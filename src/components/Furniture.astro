@@ -1,0 +1,32 @@
+---
+import { getSize, type Product, type SizeId } from '../data/catalog';
+import { furnitureSvg } from '../lib/iso';
+
+interface Props {
+  product: Product;
+  size?: SizeId;
+  wood?: string;
+  fabric?: string | null;
+  explode?: boolean;
+  pad?: number;
+  class?: string;
+  label?: string;
+  vt?: boolean;
+}
+
+const { product, size = 'm', wood = product.defaultWood, fabric = product.defaultFabric, explode = false, pad = 10, label, vt = false } = Astro.props;
+const dims = getSize(product.kind, size);
+const svg = furnitureSvg(product.kind, dims, { label: label ?? `${product.name}, dibujo isométrico`, pad, explode });
+---
+{vt ? (
+  <div
+    class:list={['furniture', Astro.props.class]}
+    data-wood={wood}
+    data-fabric={fabric ?? ''}
+    data-kind={product.kind}
+    transition:name={`furniture-${product.id}`}
+    set:html={svg}
+  />
+) : (
+  <div class:list={['furniture', Astro.props.class]} data-wood={wood} data-fabric={fabric ?? ''} data-kind={product.kind} set:html={svg} />
+)}

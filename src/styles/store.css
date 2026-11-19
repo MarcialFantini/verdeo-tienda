@@ -1,0 +1,281 @@
+/* ---------- Shared store views ---------- */
+.lede {
+  max-width: 46ch;
+  font-size: 1.1875rem;
+  line-height: 1.5;
+}
+.page-head {
+  padding-top: clamp(32px, 6vw, 88px);
+  padding-bottom: clamp(24px, 4vw, 48px);
+  display: grid;
+  gap: 16px;
+}
+.page-head h1 {
+  font-size: var(--step-4);
+}
+.muted {
+  color: var(--muted);
+}
+
+/* Furniture drawing container */
+.furniture {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  min-height: 0;
+}
+.furniture svg {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* ---------- Product card ---------- */
+.card {
+  position: relative;
+}
+.card-link {
+  display: grid;
+  gap: 10px;
+  text-decoration: none;
+}
+.card-stage {
+  position: relative;
+  aspect-ratio: 4 / 3.4;
+  background: var(--paper-2);
+  padding: 10%;
+  transition: background-color 0.3s;
+}
+.card-stage .furniture {
+  transition: transform 0.6s var(--ease);
+}
+.card-link:hover .card-stage {
+  background: var(--wood);
+}
+.card-link:hover .card-stage .furniture {
+  transform: translateY(-6px) scale(1.03);
+}
+.card-name {
+  font-size: 1.75rem;
+  line-height: 1.05;
+}
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.card-price {
+  color: var(--ink);
+  font-weight: 600;
+}
+.stock-flag {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 4px 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.stock-flag.out {
+  background: var(--paper);
+  color: var(--ink);
+}
+.stock-flag.flash {
+  animation: flagIn 0.5s var(--ease-spring);
+}
+@keyframes flagIn {
+  from { transform: scale(0.8); opacity: 0; }
+}
+.wish-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  transition: transform 0.2s var(--ease);
+}
+.wish-btn:hover {
+  transform: scale(1.1);
+}
+.wish-btn[aria-pressed='true'] svg {
+  fill: var(--green);
+  stroke: var(--green);
+}
+.wish-btn.pop {
+  animation: bump 0.45s var(--ease-spring);
+}
+
+/* ---------- Catalogue ---------- */
+.catalog-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: end;
+  gap: 16px 48px;
+  padding: clamp(32px, 6vw, 88px) 0 32px;
+}
+.catalog-head h1 {
+  font-size: var(--step-4);
+}
+.catalog-tools {
+  position: sticky;
+  top: calc(var(--header-h) + var(--ticker-h));
+  z-index: 20;
+  background: var(--paper);
+  padding: 12px 0;
+}
+.filters {
+  display: grid;
+  gap: 12px;
+}
+.filters-toggle {
+  display: none;
+}
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.seg-item {
+  position: relative;
+}
+.seg-item input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.seg-item span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-weight: 600;
+  background: var(--paper-2);
+  transition: background-color 0.2s, color 0.2s;
+}
+.seg-item small {
+  font-weight: 500;
+  color: var(--muted);
+}
+.seg-item input:checked + span {
+  background: var(--green);
+  color: var(--on-green);
+}
+.seg-item input:checked + span small {
+  color: var(--green-soft);
+}
+.seg-item input:focus-visible + span {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.search-field {
+  flex: 1 1 260px;
+}
+.sort-field {
+  flex: 0 1 260px;
+}
+.result-count {
+  padding: 8px 0 20px;
+  color: var(--muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 48px 24px;
+}
+.grid > [hidden] {
+  display: none;
+}
+.empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 48px 0;
+}
+.empty-state h2 {
+  font-size: var(--step-3);
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .catalog-head {
+    grid-template-columns: 1fr;
+    padding-bottom: 16px;
+  }
+  .filters-toggle {
+    display: inline-flex;
+  }
+  .filters {
+    display: none;
+    padding-top: 12px;
+  }
+  .filters.open {
+    display: grid;
+  }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px 12px;
+  }
+  .card-name {
+    font-size: 1.375rem;
+  }
+  .card-meta {
+    font-size: 0.875rem;
+    flex-direction: column;
+  }
+  .sort-field,
+  .search-field {
+    flex: 1 1 100%;
+  }
+}
+
+/* Odometer */
+.odo {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.odo-d {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  line-height: 1;
+}
+.odo-strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.9s var(--ease);
+}
+.odo-strip span {
+  height: 1em;
+  text-align: center;
+  line-height: 1;
+}

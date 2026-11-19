@@ -1,0 +1,231 @@
+---
+/**
+ * Wood, fabric and size picker. Drives a furniture drawing elsewhere on the page (data-stage),
+ * rolls the price and adds the configured piece to the cart.
+ */
+import { FABRICS, KINDS, WOODS, defaultSelection, getSize, priceFor, type Product } from '../data/catalog';
+import { formatPrice } from '../lib/format';
+import Icon from './Icon.astro';
+
+interface Props {
+  product: Product;
+  stage: string;
+  /** compact variant used on the home page */
+  compact?: boolean;
+  id?: string;
+}
+
+const { product, stage, compact = false, id = 'cfg' } = Astro.props;
+const sel = defaultSelection(product);
+const size = getSize(product.kind, sel.size);
+const woods = WOODS.filter((w) => product.woods.includes(w.id));
+const fabrics = FABRICS.filter((f) => product.fabrics.includes(f.id));
+const price = priceFor(product, sel);
+---
+<form
+  class:list={['configurator', { compact }]}
+  data-configurator
+  data-product={product.id}
+  data-stage={stage}
+  aria-label={`Configurar ${product.name}`}
+>
+  <div class="cfg-price">
+    <p class="price serif"><span class="odo" data-price>{formatPrice(price)}</span></p>
+    <p class="cfg-live">
+      <span class="live-pill"><span class="live-dot" aria-hidden="true"></span><span data-viewers-for={product.id}>5 personas viendo esto</span></span>
+      <span class="stock-line" data-stock-line></span>
+    </p>
+  </div>
+
+  <fieldset class="choices">
+    <legend>Madera <span class="muted" data-wood-note>{WOODS.find((w) => w.id === product.defaultWood)?.note}</span></legend>
+    {woods.map((w) => (
+      <label class="choice"><input type="radio" name={`${id}-wood`} value={w.id} checked={w.id === product.defaultWood} data-kind="wood" /><span><i style={`--sw:${w.t}`}></i>{w.name}</span></label>
+    ))}
+  </fieldset>
+
+  {fabrics.length > 0 && (
+    <fieldset class="choices">
+      <legend>Tela</legend>
+      {fabrics.map((f) => (
+        <label class="choice"><input type="radio" name={`${id}-fabric`} value={f.id} checked={f.id === product.defaultFabric} data-kind="fabric" /><span><i style={`--sw:${f.t}`}></i>{f.name}</span></label>
+      ))}
+    </fieldset>
+  )}
+
+  <fieldset class="choices">
+    <legend>Medida</legend>
+    {KINDS[product.kind].sizes.map((s) => (
+      <label class="choice"><input type="radio" name={`${id}-size`} value={s.id} checked={s.id === 'm'} data-kind="size" /><span>{s.label}</span></label>
+    ))}
+  </fieldset>
+
+  <dl class="cfg-facts">
+    <div><dt>Medidas</dt><dd class="num" data-dims>{size.w} × {size.d} × {size.h} cm</dd></div>
+    <div><dt>Fabricación</dt><dd class="num">{product.days} días en el taller</dd></div>
+  </dl>
+
+  <div class="cfg-actions">
+    <button class="btn" type="submit" data-add>
+      <Icon name="bag" size={20} /> Agregar al carrito
+    </button>
+    {!compact && (
+      <button class="btn ghost wish-inline" type="button" data-wish={product.id} aria-pressed="false" aria-label={`Guardar ${product.name} en favoritos`}>
+        <Icon name="heart" size={20} />
+      </button>
+    )}
+  </div>
+</form>
+
+<script>
+  import { mount, prefersReducedMotion } from '../lib/page';
+  import { getFabric, getProduct, getSize, getWood, priceFor, type Selection, type SizeId } from '../data/catalog';
+  import { formatPrice } from '../lib/format';
+  import { furnitureSvg } from '../lib/iso';
+  import { renderOdometer } from '../lib/odometer';
+  import { addToCart, subscribe, getState } from '../lib/store';
+  import { stockOf } from '../lib/sim';
+  import { announce, toast } from '../lib/ui';
+  import { navigate } from 'astro:transitions/client';
+
+  mount<HTMLFormElement>('[data-configurator]', (form) => {
+    const product = getProduct(form.dataset['product'] ?? '');
+    const stage = document.querySelector<HTMLElement>(form.dataset['stage'] ?? '');
+    if (!product) return;
+    const priceEl = form.querySelector<HTMLElement>('[data-price]');
+    const dimsEl = form.querySelector<HTMLElement>('[data-dims]');
+    const woodNote = form.querySelector<HTMLElement>('[data-wood-note]');
+    const stockLine = form.querySelector<HTMLElement>('[data-stock-line]');
+    const reduced = prefersReducedMotion();
+    const syncUrl = form.closest('[data-sync-url]') !== null;
+
+    const read = (): Selection => {
+      const data = new FormData(form);
+      let wood = product.defaultWood;
+      let fabric: string | null = product.defaultFabric;
+      let size: SizeId = 'm';
+      for (const [key, value] of data.entries()) {
+        if (key.endsWith('-wood')) wood = String(value);
+        if (key.endsWith('-fabric')) fabric = String(value);
+        if (key.endsWith('-size')) size = String(value) as SizeId;
+      }
+      return { wood, fabric, size };
+    };
+
+    // Restore from URL (product page only).
+    if (syncUrl) {
+      const params = new URLSearchParams(window.location.search);
+      const set = (kind: string, value: string | null) => {
+        if (!value) return;
+        const input = form.querySelector<HTMLInputElement>(`input[data-kind="${kind}"][value="${value}"]`);
+        if (input) input.checked = true;
+      };
+      set('wood', params.get('madera'));
+      set('fabric', params.get('tela'));
+      set('size', params.get('medida'));
+    }
+
+    let lastSize: SizeId | null = null;
+    function render(animate: boolean): void {
+      if (!product) return;
+      const sel = read();
+      if (priceEl) renderOdometer(priceEl, formatPrice(priceFor(product, sel)), animate && !reduced);
+      const dims = getSize(product.kind, sel.size);
+      if (dimsEl) dimsEl.textContent = `${dims.w} × ${dims.d} × ${dims.h} cm`;
+      if (woodNote) woodNote.textContent = getWood(sel.wood).note;
+      if (stage) {
+        for (const node of [stage, ...Array.from(stage.querySelectorAll<HTMLElement>('.furniture[data-wood]'))]) {
+          node.dataset['wood'] = sel.wood;
+          node.dataset['fabric'] = sel.fabric ?? '';
+        }
+        if (lastSize !== null && lastSize !== sel.size) {
+          const svgHost = stage.matches('.furniture') ? stage : stage.querySelector<HTMLElement>('.furniture');
+          if (svgHost) {
+            const explode = svgHost.querySelector('svg')?.classList.contains('explodable') ?? false;
+            svgHost.innerHTML = furnitureSvg(product.kind, dims, { label: `${product.name}, dibujo isométrico`, pad: explode ? 6 : 10, explode });
+          }
+        }
+        if (animate && !reduced) {
+          stage.classList.remove('swap');
+          void stage.offsetWidth;
+          stage.classList.add('swap');
+        }
+      }
+      lastSize = sel.size;
+      if (syncUrl) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('madera', sel.wood);
+        if (sel.fabric) params.set('tela', sel.fabric);
+        params.set('medida', sel.size);
+        history.replaceState(history.state, '', `?${params.toString()}`);
+      }
+      form.dispatchEvent(new CustomEvent('selection', { detail: sel, bubbles: true }));
+    }
+
+    function renderStock(): void {
+      if (!stockLine || !product) return;
+      const left = stockOf(product.id, getState());
+      stockLine.textContent = left === 0 ? 'Agotado: se fabrica a pedido en cuanto vuelva la madera' : left <= 3 ? `Quedan ${left} cupos este mes` : `${left} cupos de taller este mes`;
+      stockLine.classList.toggle('low', left <= 3);
+    }
+
+    form.addEventListener('change', (event) => {
+      const target = event.target as HTMLInputElement;
+      render(true);
+      if (target.dataset['kind'] === 'wood') announce(`Madera: ${getWood(target.value).name}.`);
+      if (target.dataset['kind'] === 'fabric') announce(`Tela: ${getFabric(target.value)?.name ?? ''}.`);
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!product) return;
+      const sel = read();
+      const left = stockOf(product.id, getState());
+      addToCart({ productId: product.id, wood: sel.wood, fabric: sel.fabric, size: sel.size, unitPrice: priceFor(product, sel) });
+      flyToCart(stage);
+      const btn = form.querySelector<HTMLButtonElement>('[data-add]');
+      btn?.classList.add('added');
+      window.setTimeout(() => btn?.classList.remove('added'), 900);
+      toast({
+        title: `${product.name} en tu carrito`,
+        body: `${getWood(sel.wood).name}${sel.fabric ? ` · ${getFabric(sel.fabric)?.name ?? ''}` : ''} · ${formatPrice(priceFor(product, sel))}${left === 0 ? ' · a pedido' : ''}`,
+        thumb: { productId: product.id, selection: sel },
+        action: { label: 'Ver carrito', run: () => void navigate('/carrito') },
+      });
+      announce(`${product.name} agregado al carrito.`);
+    });
+
+    function flyToCart(source: HTMLElement | null): void {
+      if (reduced || !source) return;
+      const target = Array.from(document.querySelectorAll<HTMLElement>('[data-cart-link]')).find((n) => n.offsetParent !== null)
+        ?? document.querySelector<HTMLElement>('.tabbar [data-tab="/carrito"]');
+      const svg = source.querySelector('svg');
+      if (!target || !svg) return;
+      const from = svg.getBoundingClientRect();
+      const to = target.getBoundingClientRect();
+      const ghost = document.createElement('div');
+      ghost.className = 'fly-ghost';
+      ghost.dataset['wood'] = source.dataset['wood'] ?? '';
+      ghost.dataset['fabric'] = source.dataset['fabric'] ?? '';
+      ghost.innerHTML = svg.outerHTML;
+      const size = Math.min(from.width, from.height, 220);
+      Object.assign(ghost.style, { left: `${from.left + from.width / 2 - size / 2}px`, top: `${from.top + from.height / 2 - size / 2}px`, width: `${size}px`, height: `${size}px` });
+      document.body.append(ghost);
+      const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+      const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      const anim = ghost.animate(
+        [
+          { transform: 'translate(0,0) scale(1)', opacity: 1 },
+          { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 80}px) scale(0.5)`, opacity: 0.9, offset: 0.55 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.08)`, opacity: 0.2 },
+        ],
+        { duration: 780, easing: 'cubic-bezier(.5,0,.3,1)' },
+      );
+      anim.onfinish = () => ghost.remove();
+    }
+
+    render(false);
+    renderStock();
+    return subscribe(() => renderStock());
+  });
+</script>

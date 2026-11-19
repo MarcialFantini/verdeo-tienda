@@ -1,0 +1,99 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+---
+<Layout title="Favoritos" view="wishlist">
+  <div class="wrap" data-wish-view>
+    <header class="page-head">
+      <h1>Favoritos</h1>
+      <p class="lede">Lo que guardaste para pensarlo. Te avisamos en la campana si se agota o vuelve el stock.</p>
+    </header>
+    <div class="wish-grid" data-wish-grid aria-busy="true">
+      {[0, 1, 2].map(() => <div class="wish-card skeleton" aria-hidden="true"></div>)}
+    </div>
+    <div class="cart-empty" data-wish-empty hidden>
+      <h2>Todavía no guardaste nada</h2>
+      <p>Tocá el corazón de cualquier mueble para tenerlo a mano.</p>
+      <a class="btn" href="/catalogo">Ir al catálogo <Icon name="arrow" size={20} /></a>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { mount, escapeHtml } from '../lib/page';
+  import { ROOMS, defaultSelection, describeSelection, getProduct, priceFor } from '../data/catalog';
+  import { formatPrice } from '../lib/format';
+  import { addToCart, getState, subscribe, toggleWishlist } from '../lib/store';
+  import { stockOf, viewersOf } from '../lib/sim';
+  import { announce, thumbSvg, toast } from '../lib/ui';
+
+  mount<HTMLElement>('[data-wish-view]', (root) => {
+    const grid = root.querySelector<HTMLElement>('[data-wish-grid]');
+    const empty = root.querySelector<HTMLElement>('[data-wish-empty]');
+    if (!grid || !empty) return;
+    let sig = '';
+
+    function render(force = false): void {
+      if (!grid || !empty) return;
+      const s = getState();
+      const next = JSON.stringify([s.wishlist, s.wishlist.map((id) => stockOf(id, s))]);
+      if (!force && next === sig) {
+        grid.querySelectorAll<HTMLElement>('[data-live-viewers]').forEach((n) => {
+          const v = viewersOf(n.dataset['liveViewers'] ?? '', s.sim.clock);
+          n.textContent = `${v} viendo ahora`;
+        });
+        return;
+      }
+      sig = next;
+      grid.removeAttribute('aria-busy');
+      empty.hidden = s.wishlist.length > 0;
+      grid.hidden = s.wishlist.length === 0;
+      grid.innerHTML = s.wishlist.map((id) => {
+        const p = getProduct(id);
+        if (!p) return '';
+        const sel = defaultSelection(p);
+        const left = stockOf(id, s);
+        return `<article class="wish-card">
+          <a class="wish-thumb" href="/producto/${p.slug}">${thumbSvg(p.id, sel)}</a>
+          <div class="wish-info">
+            <h2><a href="/producto/${p.slug}">${escapeHtml(p.name)}</a></h2>
+            <p class="muted">${ROOMS[p.room]} · ${escapeHtml(describeSelection(p, sel))}</p>
+            <p class="wish-live"><span class="live-dot" aria-hidden="true"></span><span data-live-viewers="${p.id}">${viewersOf(p.id, s.sim.clock)} viendo ahora</span>${left <= 3 ? ` · <strong>${left === 0 ? 'Agotado' : `Quedan ${left}`}</strong>` : ''}</p>
+            <p class="serif num wish-price">${formatPrice(priceFor(p, sel))}</p>
+            <div class="wish-actions">
+              <button class="btn small" type="button" data-wish-add="${p.id}">Agregar al carrito</button>
+              <button class="link-btn" type="button" data-wish-remove="${p.id}">Quitar</button>
+            </div>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    grid.addEventListener('click', (event) => {
+      const t = event.target as HTMLElement;
+      const add = t.closest<HTMLElement>('[data-wish-add]');
+      const remove = t.closest<HTMLElement>('[data-wish-remove]');
+      if (add) {
+        const p = getProduct(add.dataset['wishAdd'] ?? '');
+        if (!p) return;
+        const sel = defaultSelection(p);
+        addToCart({ productId: p.id, wood: sel.wood, fabric: sel.fabric, size: sel.size, unitPrice: priceFor(p, sel) });
+        toast({ title: `${p.name} en tu carrito`, body: describeSelection(p, sel), thumb: { productId: p.id, selection: sel }, href: '/carrito' });
+        announce(`${p.name} agregado al carrito.`);
+      }
+      if (remove) {
+        const id = remove.dataset['wishRemove'] ?? '';
+        const p = getProduct(id);
+        toggleWishlist(id);
+        if (p) toast({ title: `${p.name} quitado de favoritos`, action: { label: 'Deshacer', run: () => void toggleWishlist(id) } });
+      }
+    });
+
+    const t = window.setTimeout(() => render(true), 260);
+    const unsub = subscribe(() => render());
+    return () => {
+      window.clearTimeout(t);
+      unsub();
+    };
+  });
+</script>

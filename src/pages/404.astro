@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Furniture from '../components/Furniture.astro';
+import { PRODUCTS } from '../data/catalog';
+const stool = PRODUCTS[2]!;
+---
+<Layout title="Página no encontrada" view="notfound">
+  <div class="wrap notfound">
+    <div class="nf-art"><Furniture product={stool} explode pad={6} label="Una banqueta desarmada" /></div>
+    <div class="nf-copy">
+      <h1>Esta pieza no está en el taller</h1>
+      <p class="lede">La página que buscabas no existe o cambió de lugar. Probá con el buscador (Ctrl + K) o volvé al catálogo.</p>
+      <div class="none-actions">
+        <a class="btn" href="/catalogo">Ir al catálogo</a>
+        <a class="btn ghost" href="/">Volver al inicio</a>
+      </div>
+    </div>
+  </div>
+</Layout>

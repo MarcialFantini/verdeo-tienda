@@ -1,15 +1,18 @@
 // @ts-check
-import { defineConfig } from "astro/config";
-import tailwindcss from "@tailwindcss/vite";
-import preact from "@astrojs/preact";
-import vercel from "@astrojs/vercel";
+import { defineConfig } from 'astro/config';
 
-// https://astro.build/config
+// Static demo store: no server, no adapters, no external services.
 export default defineConfig({
-  output: "server",
-  adapter: vercel(),
-  vite: {
-    plugins: [tailwindcss()],
+  site: 'https://09-ecommerce-marca.vercel.app',
+  output: 'static',
+  trailingSlash: 'ignore',
+  build: {
+    inlineStylesheets: 'always',
   },
-  integrations: [preact()],
+  prefetch: {
+    prefetchAll: false,
+    defaultStrategy: 'hover',
+  },
+  devToolbar: { enabled: false },
+  server: { port: 4611 },
 });

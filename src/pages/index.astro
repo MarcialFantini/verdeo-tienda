@@ -1,362 +1,157 @@
 ---
-export const prerender = true;
+import Layout from '../layouts/Layout.astro';
+import Furniture from '../components/Furniture.astro';
+import Configurator from '../components/Configurator.astro';
+import RoomScene from '../components/RoomScene.astro';
+import ProductionSlip from '../components/ProductionSlip.astro';
+import BoxScene from '../components/BoxScene.astro';
+import ShippingMap from '../components/ShippingMap.astro';
+import Icon from '../components/Icon.astro';
+import { PRODUCTS, KINDS } from '../data/catalog';
+import { formatPrice } from '../lib/format';
 
-import Layout from "../layouts/Layout.astro";
-import ProductCard from "../components/ProductCard.astro";
-import { getCollection } from "astro:content";
-import { CATEGORIAS, formatPrecio, SITE } from "../lib/site.ts";
+const chair = PRODUCTS[0]!;
+const sofa = PRODUCTS[1]!;
 
-const productos = await getCollection("productos");
-const destacados = productos
-  .filter((p) => p.data.destacado)
-  .slice(0, 5);
-
-// Imagen hero principal: primer destacado
-const heroProducto = destacados[0] ?? productos[0];
-
-// Imágenes para mosaico del hero
-const heroStack = productos.slice(0, 3);
+// The workshop's printed list: twelve lines, five pieces each.
+const lines = [...new Set(PRODUCTS.map((p) => p.line))].map((line) => {
+  const items = PRODUCTS.filter((p) => p.line === line);
+  return { line, items };
+});
+const seatingLines = lines.filter((_, i) => i % 2 === 0).slice(0, 2);
+const storageLines = lines.filter((_, i) => i % 2 === 1).slice(0, 2);
 ---
-
-<Layout>
-  <!-- HERO · Editorial split -->
-  <section
-    class="relative mx-auto max-w-[1400px] px-5 md:px-10 pt-10 md:pt-16 pb-16 md:pb-24"
-  >
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-      <div class="lg:col-span-6 lg:pr-6 order-2 lg:order-1">
-        <div class="eyebrow mb-5">Tienda consciente · desde 2019</div>
-        <h1 class="display text-[44px] md:text-[72px] lg:text-[84px] leading-[0.95]">
-          Hecho a mano,
-          <span class="display-italic text-forest">pensado</span>
-          para durar.
-        </h1>
-        <p class="mt-6 text-lg text-muted max-w-[52ch] leading-relaxed">
-          Velas de soja, difusores, jabones y textiles en algodón orgánico.
-          Productos sustentables para tu casa, hechos con ingredientes nobles y
-          packaging compostable.
-        </p>
-        <div class="mt-8 flex flex-wrap items-center gap-3">
-          <a href="/productos" class="btn-primary">
-            Explorar el catálogo
-            <svg
-              viewBox="0 0 24 24"
-              class="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              aria-hidden="true"
-            >
-              <path
-                d="M5 12h14M13 5l7 7-7 7"
-                stroke-linecap="round"
-                stroke-linejoin="round"></path>
-            </svg>
-          </a>
-          <a href="/#nosotras" class="btn-ghost">Conocer la marca</a>
+<Layout title="Inicio" view="home">
+  <div class="split" data-hero>
+    <div class="split-read">
+      <section class="hero-copy" aria-labelledby="hero-title">
+        <h1 id="hero-title">Hecho mientras lo elegís</h1>
+        <p class="hero-sub">Sillas, mesas y camas de madera maciza que se fabrican en Tucumán en quince días, en la madera, la tela y la medida que elijas.</p>
+        <div class="hero-actions">
+          <a class="btn" href="#configurador">Armar mi silla <Icon name="arrow" size={20} /></a>
+          <a class="link-btn" href="/catalogo">Ver los 60 muebles</a>
         </div>
-
-        <dl class="mt-12 grid grid-cols-3 gap-6 max-w-md">
-          <div>
-            <dt class="eyebrow">Soja</dt>
-            <dd class="mt-1.5 text-2xl display">100%</dd>
-            <p class="text-xs text-muted mt-1">Cera vegetal, sin parafina.</p>
-          </div>
-          <div>
-            <dt class="eyebrow">Algodón</dt>
-            <dd class="mt-1.5 text-2xl display">GOTS</dd>
-            <p class="text-xs text-muted mt-1">Textiles certificados.</p>
-          </div>
-          <div>
-            <dt class="eyebrow">Packaging</dt>
-            <dd class="mt-1.5 text-2xl display">Cero</dd>
-            <p class="text-xs text-muted mt-1">Sin plásticos, compostable.</p>
-          </div>
+        <dl class="hero-facts">
+          <div><dt>Desde</dt><dd class="serif num">{formatPrice(chair.basePrice)}</dd></div>
+          <div><dt>Fabricación</dt><dd class="serif num">{chair.days} días</dd></div>
+          <div><dt>Envío</dt><dd class="serif">a todo el país</dd></div>
         </dl>
-      </div>
+      </section>
 
-      <div class="lg:col-span-6 relative order-1 lg:order-2">
-        <div class="bezel-outer">
-          <div class="bezel-inner overflow-hidden">
-            <div class="aspect-[4/5] relative bg-linen">
-              <img
-                src={heroProducto.data.imagen}
-                alt={heroProducto.data.imagen_alt}
-                class="w-full h-full object-cover"
-                loading="eager"
-                fetchpriority="high"
-                onerror={`this.onerror=null;this.src='https://picsum.photos/seed/${heroProducto.id}/1200/1500';`}
-              />
-              <div
-                class="absolute bottom-0 left-0 right-0 p-5 md:p-7 bg-gradient-to-t from-ink/40 to-transparent"
-              >
-                <div class="text-cream/90 eyebrow">Destacado</div>
-                <div class="text-cream display text-[24px] md:text-[28px] mt-1 leading-tight">
-                  {heroProducto.data.nombre}
-                </div>
-                <div class="text-cream/90 mt-2 text-sm tabular-nums">
-                  {formatPrecio(heroProducto.data.precio)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <section class="cfg-block" id="configurador" aria-labelledby="cfg-title">
+        <h2 id="cfg-title">Elegí la madera y mirala cambiar</h2>
+        <p class="lede">Cuatro maderas del norte, cinco telas y tres medidas. El precio se recalcula al instante.</p>
+        <Configurator product={chair} stage="#home-stage" compact id="home" />
+        <a class="link-btn" href={`/producto/${chair.slug}`}>Ver la ficha completa de la {chair.name}</a>
+      </section>
+    </div>
 
-        <!-- Mosaico flotante -->
-        <div
-          class="hidden md:block absolute -bottom-10 -left-10 w-[180px] lg:w-[220px] bezel-outer"
-        >
-          <div class="bezel-inner overflow-hidden">
-            <div class="aspect-square bg-linen">
-              <img
-                src={heroStack[1]?.data.imagen ?? heroStack[0].data.imagen}
-                alt={heroStack[1]?.data.imagen_alt ?? heroStack[0].data.imagen_alt}
-                class="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          </div>
-        </div>
-        <div
-          class="hidden md:block absolute -top-6 -right-4 w-[120px] lg:w-[140px] bezel-outer"
-        >
-          <div class="bezel-inner overflow-hidden">
-            <div class="aspect-square bg-linen">
-              <img
-                src={heroStack[2]?.data.imagen ?? heroStack[0].data.imagen}
-                alt={heroStack[2]?.data.imagen_alt ?? heroStack[0].data.imagen_alt}
-                class="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          </div>
+    <div class="split-stage">
+      <div class="stage-panel" id="home-stage" data-wood={chair.defaultWood} data-fabric={chair.defaultFabric ?? ''} data-assembly>
+        <Furniture product={chair} explode pad={6} label={`${chair.name}: sus piezas se encastran a medida que bajás`} />
+        <div class="stage-bar">
+          <span><strong data-pieces class="num">0 de 6</strong> piezas encastradas</span>
+          <span>{chair.name} · taller de Yerba Buena</span>
         </div>
       </div>
     </div>
+  </div>
+
+  <section class="home-room wrap" aria-labelledby="room-h">
+    <div class="section-head">
+      <h2 id="room-h">Probalo en tu living</h2>
+      <p class="lede">Arrastrá el {sofa.name.toLowerCase()} por una habitación de cuatro metros. La regla marca su lugar exacto, en centímetros.</p>
+    </div>
+    <RoomScene product={sofa} id="home-room" />
   </section>
 
-  <!-- CATEGORÍAS · 4-column grid con descripciones -->
-  <section
-    class="mx-auto max-w-[1400px] px-5 md:px-10 py-16 md:py-24"
-    aria-labelledby="h-categorias"
-  >
-    <div class="flex items-end justify-between mb-10 md:mb-14">
-      <h2 id="h-categorias" class="display text-[32px] md:text-[48px] leading-[1]">
-        Cuatro categorías,
-        <span class="display-italic text-forest">una misma mano.</span>
-      </h2>
-      <a
-        href="/productos"
-        class="hidden md:inline-flex text-sm hover:text-forest transition-colors duration-300"
-        >Ver todo →</a
-      >
-    </div>
-
-    <ul class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
-      {
-        CATEGORIAS.map((c) => {
-          const sample = productos.find((p) => p.data.categoria === c.id);
-          return (
-            <li>
-              <a
-                href={`/productos?cat=${c.id}`}
-                class="block bezel-outer group h-full"
-                aria-label={`Ver productos de ${c.nombre}`}
-              >
-                <div class="bezel-inner p-3 md:p-4 h-full flex flex-col">
-                  <div class="aspect-square rounded-2xl overflow-hidden bg-linen">
-                    {sample && (
-                      <img
-                        src={sample.data.imagen}
-                        alt={sample.data.imagen_alt}
-                        loading="lazy"
-                        class="w-full h-full object-cover transition-transform duration-[1200ms] ease-[var(--ease-fluid)] group-hover:scale-[1.04]"
-                      />
-                    )}
-                  </div>
-                  <div class="mt-3 flex items-center justify-between">
-                    <div>
-                      <div class="display text-[22px] leading-tight">{c.nombre}</div>
-                      <div class="text-xs text-muted mt-1 max-w-[28ch] leading-snug">
-                        {c.descripcion}
-                      </div>
-                    </div>
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="w-4 h-4 text-muted group-hover:text-forest transition-all duration-500 group-hover:translate-x-1"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M5 12h14M13 5l7 7-7 7"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"></path>
-                    </svg>
-                  </div>
-                </div>
-              </a>
-            </li>
-          );
-        })
-      }
-    </ul>
+  <section class="home-production" aria-labelledby="prod-h">
+    <ProductionSlip days={15} title="Quince días en el taller" id="prod-h" />
   </section>
 
-  <!-- DESTACADOS · Asymmetric Bento -->
-  <section
-    class="mx-auto max-w-[1400px] px-5 md:px-10 py-16 md:py-24"
-    aria-labelledby="h-destacados"
-  >
-    <div class="mb-10 md:mb-14 max-w-[52ch]">
-      <div class="eyebrow mb-3">Selección de la casa</div>
-      <h2 id="h-destacados" class="display text-[32px] md:text-[48px] leading-[1]">
-        Los favoritos del taller.
-      </h2>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-7">
-      {
-        destacados.map((p, i) => (
-          <div
-            class={`reveal ${i === 0 ? "md:col-span-7" : i === 1 ? "md:col-span-5" : i === 2 ? "md:col-span-4" : i === 3 ? "md:col-span-4" : "md:col-span-4"}`}
-          >
-            <ProductCard producto={p} size={i === 0 ? "wide" : "default"} />
-          </div>
-        ))
-      }
-    </div>
-
-    <div class="mt-12 text-center">
-      <a href="/productos" class="btn-ghost">
-        Ver el catálogo completo
-        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-      </a>
-    </div>
-  </section>
-
-  <!-- PROPUESTA · 3 pilares -->
-  <section
-    id="nosotras"
-    class="mx-auto max-w-[1400px] px-5 md:px-10 py-20 md:py-32"
-    aria-labelledby="h-nosotras"
-  >
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
-      <div class="lg:col-span-5 lg:sticky lg:top-24">
-        <div class="eyebrow mb-4">Por qué Verdeo</div>
-        <h2 id="h-nosotras" class="display text-[36px] md:text-[56px] leading-[0.98]">
-          Cuidamos cada detalle,
-          <span class="display-italic text-forest">desde el aroma</span>
-          hasta el envoltorio.
-        </h2>
-        <p class="mt-6 text-muted leading-relaxed max-w-[44ch]">
-          Somos Micaela y Lucía, dos socias que empezamos haciendo velas en la
-          cocina de casa. Hoy seguimos igual: cada producto se elabora a mano en
-          tandas chicas, con ingredientes trazables y packaging compostable.
-        </p>
+  <section class="home-box" aria-labelledby="box-h">
+    <div class="box-grid wrap">
+      <div class="box-copy">
+        <h2 id="box-h">Se embala delante tuyo</h2>
+        <p class="lede">Cuando terminás la compra, tu mueble entra en una caja de cartón doble, se cierra con cinta de papel y sale con tu nombre en la etiqueta.</p>
+        <button class="btn ink" type="button" data-repack>Volver a embalar</button>
       </div>
-
-      <ul class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
-        <li class="bezel-outer">
-          <div class="bezel-inner p-6 md:p-7">
-            <div class="w-10 h-10 rounded-full bg-forest/10 inline-flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" class="w-5 h-5 text-forest" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                <path d="M12 2C8 6 6 9 6 13a6 6 0 0 0 12 0c0-4-2-7-6-11z"></path>
-                <path d="M12 13v8"></path>
-              </svg>
-            </div>
-            <h3 class="display text-[24px] mb-2">Ingredientes nobles</h3>
-            <p class="text-sm text-muted leading-relaxed">
-              Cera de soja certificada, aceites esenciales destilados, algodón orgánico
-              GOTS. Sin parafina, sin parabenos, sin fragancias sintéticas.
-            </p>
-          </div>
-        </li>
-        <li class="bezel-outer">
-          <div class="bezel-inner p-6 md:p-7">
-            <div class="w-10 h-10 rounded-full bg-forest/10 inline-flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" class="w-5 h-5 text-forest" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                <path d="M3 7l9-5 9 5v10l-9 5-9-5V7z"></path>
-                <path d="M3 7l9 5 9-5M12 12v10"></path>
-              </svg>
-            </div>
-            <h3 class="display text-[24px] mb-2">Tandas chicas</h3>
-            <p class="text-sm text-muted leading-relaxed">
-              Cada producto se hace en series de menos de cien unidades. Eso nos
-              permite controlar la calidad y variar las fragancias según estación.
-            </p>
-          </div>
-        </li>
-        <li class="bezel-outer">
-          <div class="bezel-inner p-6 md:p-7">
-            <div class="w-10 h-10 rounded-full bg-forest/10 inline-flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" class="w-5 h-5 text-forest" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                <path d="M4 7l8-4 8 4M4 7v10l8 4 8-4V7M4 7l8 4 8-4M12 11v10"></path>
-              </svg>
-            </div>
-            <h3 class="display text-[24px] mb-2">Packaging consciente</h3>
-            <p class="text-sm text-muted leading-relaxed">
-              Cajas de cartón kraft, papel seda compostable, etiquetas impresas con
-              tinta soja. Cero plástico en nuestros envíos.
-            </p>
-          </div>
-        </li>
-        <li class="bezel-outer">
-          <div class="bezel-inner p-6 md:p-7">
-            <div class="w-10 h-10 rounded-full bg-forest/10 inline-flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" class="w-5 h-5 text-forest" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M12 7v5l3 2"></path>
-              </svg>
-            </div>
-            <h3 class="display text-[24px] mb-2">Despacho en 48 h</h3>
-            <p class="text-sm text-muted leading-relaxed">
-              Empacamos cada pedido a mano en nuestro taller de Buenos Aires y lo
-              despachamos en 48 h hábiles. Envío gratis a partir de {formatPrecio(SITE.envio_gratis_desde)}.
-            </p>
-          </div>
-        </li>
-      </ul>
+      <BoxScene product={chair} id="home-box" />
     </div>
   </section>
 
-  <!-- MANIFIESTO · Full-width editorial quote -->
-  <section
-    class="bg-forest text-cream"
-    aria-labelledby="h-manifiesto"
-  >
-    <div class="mx-auto max-w-[1100px] px-5 md:px-10 py-24 md:py-40 text-center">
-      <div class="eyebrow text-cream/70 mb-8">Manifiesto</div>
-      <blockquote class="display-italic text-[28px] md:text-[48px] lg:text-[60px] leading-[1.15]">
-        “Creemos en los objetos que se hacen lento, con las manos, con tiempo.
-        Los que se eligen uno por uno. Los que duran.”
-      </blockquote>
-      <div class="mt-10 text-sm text-cream/80 tracking-[0.22em] uppercase">
-        Micaela & Lucía · fundadoras
-      </div>
+  <section class="home-ship wrap" aria-labelledby="ship-h">
+    <div class="section-head">
+      <h2 id="ship-h">Sale de Tucumán, llega a tu provincia</h2>
+      <p class="lede">Elegí el destino y mirá el camión hacer el viaje. El plazo se suma a los días de fabricación.</p>
     </div>
+    <ShippingMap id="home-map" initial="cordoba" />
   </section>
 
-  <!-- CTA FINAL -->
-  <section class="mx-auto max-w-[1400px] px-5 md:px-10 py-24 md:py-32">
-    <div class="bezel-outer">
-      <div class="bezel-inner p-8 md:p-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-        <div class="max-w-[44ch]">
-          <div class="eyebrow mb-3">Empezá por lo que más te guste</div>
-          <h2 class="display text-[32px] md:text-[44px] leading-[1]">
-            Llevate algo hecho en serio.
-          </h2>
+  <section class="home-lines" aria-labelledby="lines-h">
+    <div class="sheet-paper">
+      <h2 id="lines-h">La carta del taller</h2>
+      <p class="sheet-note">Doce líneas con nombre de pueblo tucumano. Acá van cuatro; el resto está en el catálogo.</p>
+      {[...seatingLines, ...storageLines].map(({ line, items }) => (
+        <div class="sheet-group">
+          <h3>Línea {line}</h3>
+          <ul>
+            {items.map((p) => (
+              <li>
+                <a href={`/producto/${p.slug}`}>
+                  <span class="sheet-name">{KINDS[p.kind].label}</span>
+                  <span class="sheet-price num">{formatPrice(p.basePrice)}</span>
+                  <span class="sheet-desc">{p.days} días · {p.woods.length} maderas{p.fabrics.length ? ` · ${p.fabrics.length} telas` : ''}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
-        <a href="/productos" class="btn-primary">
-          Ver catálogo
-          <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
-          </svg>
-        </a>
-      </div>
+      ))}
+      <a class="btn block" href="/catalogo">Ver las doce líneas</a>
     </div>
   </section>
 </Layout>
+
+<script>
+  import { mount, prefersReducedMotion, isShowcase } from '../lib/page';
+  import { loadScrollTrigger } from '../lib/gsap';
+
+  mount<HTMLElement>('[data-hero]', (root) => {
+    const stage = root.querySelector<HTMLElement>('[data-assembly]');
+    const pieces = root.querySelector<HTMLElement>('[data-pieces]');
+    if (!stage) return;
+    const total = () => stage.querySelectorAll('g[style]').length;
+    const setK = (k: number) => {
+      stage.style.setProperty('--k', k.toFixed(3));
+      const n = total();
+      if (pieces) pieces.textContent = `${Math.round((1 - k) * n)} de ${n}`;
+    };
+    if (prefersReducedMotion()) {
+      setK(0);
+      return;
+    }
+    setK(1);
+    let trigger: { kill: () => void } | null = null;
+    void loadScrollTrigger().then(({ ScrollTrigger }) => {
+      trigger = ScrollTrigger.create({
+        trigger: root,
+        start: 'top top',
+        end: () => `+=${Math.round(window.innerHeight * (window.innerWidth < 960 ? 0.7 : 0.85))}`,
+        scrub: isShowcase() ? true : 0.6,
+        onUpdate: (self) => setK(1 - self.progress),
+      });
+    });
+    return () => trigger?.kill();
+  });
+
+  mount<HTMLElement>('[data-hero]', () => {
+    if (isShowcase() && !prefersReducedMotion()) void import('../scripts/showcase').then((m) => m.runShowcase());
+  });
+
+  mount<HTMLElement>('[data-repack]', (btn) => {
+    const onClick = () => document.querySelector('[data-box="home-box"]')?.dispatchEvent(new CustomEvent('box:play'));
+    btn.addEventListener('click', onClick);
+    return () => btn.removeEventListener('click', onClick);
+  });
+</script>

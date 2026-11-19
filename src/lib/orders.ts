@@ -1,151 +1,115 @@
-/**
- * Orders — historial de pedidos del cliente en este navegador.
- * Persistido en localStorage bajo "verdeo:orders:v1".
- *
- * Esquema versionado (v1). El Order archiva la copia exacta de cada
- * CartLine al momento de confirmar; precios e imágenes quedan como
- * snapshot aunque el catálogo cambie.
- *
- * Decisión: la última confirmación también queda en `verdeo:lastOrder:v1`
- * para que la pantalla de confirmación funcione tras un refresh sin
- * que la clienta tenga que volver a tipear todo.
- */
+/** Order creation and cart helpers for the simulated checkout. */
+import { getProduct, describeSelection, type Selection } from '../data/catalog';
+import { shippingQuote } from '../data/argentina';
+import { announceOwnPurchase } from './sim';
+import { cartSubtotal, getState, update, type CartLine, type Customer, type Order } from './store';
 
-import { atom, computed } from "nanostores";
-import { persistentAtom } from "@nanostores/persistent";
+export const DEMO_CUSTOMER: Customer = {
+  name: 'Martina Herrera',
+  email: 'martina.herrera@ejemplo.com.ar',
+  phone: '381 555-0142',
+  dni: '30.123.456',
+  address: 'Av. Aconquija 1820',
+  city: 'Yerba Buena',
+};
 
-export interface OrderLineSnapshot {
-  slug: string;
-  nombre: string;
-  precio: number;
-  cantidad: number;
-  imagen: string;
+export function lineSelection(line: CartLine): Selection {
+  return { wood: line.wood, fabric: line.fabric, size: line.size };
 }
 
-export interface OrderRecord {
-  /** Identificador del esquema ("v1"). Sirve para migraciones futuras. */
-  schemaVersion: 1;
-  /** VRT-NNNNNN */
-  numero: string;
-  /** ISO date (string). */
-  fecha: string;
-  items: OrderLineSnapshot[];
-  subtotal: number;
-  envio: number;
-  descuento: number;
-  cupon: string | null;
-  total: number;
-  cliente: {
-    nombre: string;
-    email: string;
-    telefono?: string;
-  };
-  envio_direccion: {
-    direccion: string;
-    ciudad: string;
-    provincia: string;
-    codigoPostal: string;
-    notas?: string;
-  };
-  metodoPago: "efectivo" | "transferencia";
-  /** Opciones de regalo. */
-  giftWrap: boolean;
-  giftMessage: string;
-  /** Email normalizado para lookup en /cuenta/pedidos. */
-  clienteEmailKey: string;
+export function lineLabel(line: CartLine): string {
+  const product = getProduct(line.productId);
+  return product ? describeSelection(product, lineSelection(line)) : '';
 }
 
-const initial: OrderRecord[] = [];
+export function productionDaysFor(lines: CartLine[]): number {
+  return Math.max(10, ...lines.map((l) => getProduct(l.productId)?.days ?? 15));
+}
 
-function sanitize(arr: unknown): OrderRecord[] {
-  if (!Array.isArray(arr)) return initial;
-  return arr.filter((o): o is OrderRecord => {
-    if (!o || typeof o !== "object") return false;
-    const r = o as Partial<OrderRecord>;
-    return (
-      r.schemaVersion === 1 &&
-      typeof r.numero === "string" &&
-      typeof r.fecha === "string" &&
-      Array.isArray(r.items) &&
-      typeof r.subtotal === "number" &&
-      typeof r.envio === "number" &&
-      typeof r.descuento === "number" &&
-      typeof r.total === "number" &&
-      !!r.cliente &&
-      !!r.envio_direccion
-    );
+export function newOrderId(): string {
+  const n = 1000 + Math.floor(Math.random() * 9000);
+  return `RL-${n}`;
+}
+
+export interface PlaceOrderInput {
+  customer: Customer;
+  province: string;
+  pickup: boolean;
+  payment: Order['payment'];
+}
+
+export function placeOrder(input: PlaceOrderInput): Order {
+  const s = getState();
+  const quote = shippingQuote(input.province);
+  const subtotal = cartSubtotal(s);
+  const shippingCost = input.pickup ? 0 : quote.cost;
+  const order: Order = {
+    id: newOrderId(),
+    lines: structuredClone(s.cart),
+    subtotal,
+    shippingCost,
+    total: subtotal + shippingCost,
+    province: input.pickup ? 'tucuman' : input.province,
+    shippingDays: input.pickup ? 1 : quote.days,
+    productionDays: productionDaysFor(s.cart),
+    customer: input.customer,
+    payment: input.payment,
+    placedAt: s.sim.clock,
+    createdAt: Date.now(),
+  };
+  update((d) => {
+    d.orders.unshift(order);
+    d.cart = [];
+    d.province = input.province;
+    d.sim.stages[order.id] = 'corte';
+    d.notices.unshift({
+      id: `o-${order.id}`,
+      kind: 'order',
+      title: `Pedido ${order.id} confirmado`,
+      body: `Entró al taller. Día 1 de ${order.productionDays}: corte.`,
+      href: `/pedido?id=${order.id}`,
+      read: false,
+      at: d.sim.clock,
+    });
   });
+  announceOwnPurchase(order);
+  return order;
 }
 
-export const $orders = persistentAtom<OrderRecord[]>("verdeo:orders:v1", initial, {
-  encode: JSON.stringify,
-  decode: (raw) => {
-    try {
-      return sanitize(JSON.parse(raw));
-    } catch {
-      return initial;
-    }
-  },
-});
-
-/**
- * Cross-tab sync: si otra pestaña confirma un pedido, esta lo ve.
- * El lastOrder (clave separada) también se sincroniza.
- */
-if (typeof window !== "undefined") {
-  window.addEventListener("storage", (e) => {
-    if (e.key === "verdeo:orders:v1" && e.newValue !== null) {
-      try {
-        $orders.set(sanitize(JSON.parse(e.newValue)));
-      } catch {
-        /* ignore */
-      }
-    }
-    if (e.key === "verdeo:lastOrder:v1") {
-      // El lastOrder se lee en runtime vía localStorage.getItem; el
-      // refresh de la página de confirmación lo recogerá. No hace falta
-      // sincronizar el atom en memoria.
-    }
-  });
-}
-
-/** Cantidad de pedidos guardados en el navegador. */
-export const $ordersCount = computed($orders, (items) => items.length);
-
-/** Agrega un pedido nuevo y lo deja como "último" para la confirmación. */
-export function addOrder(record: Omit<OrderRecord, "schemaVersion" | "clienteEmailKey">): void {
-  const emailKey = record.cliente.email.trim().toLowerCase();
-  const full: OrderRecord = {
-    ...record,
-    schemaVersion: 1,
-    clienteEmailKey: emailKey,
+/** A finished-looking sample order so the tracker can be explored without buying. */
+export function sampleOrder(): Order {
+  const s = getState();
+  const line: CartLine = {
+    key: 'rl-004|cedro|-|m',
+    productId: 'rl-004',
+    wood: 'cedro',
+    fabric: null,
+    size: 'm',
+    qty: 1,
+    unitPrice: 0,
   };
-  const next = [full, ...$orders.get()];
-  $orders.set(next);
-  try {
-    localStorage.setItem("verdeo:lastOrder:v1", JSON.stringify(full));
-  } catch {
-    /* ignore quota */
+  const product = getProduct('rl-004');
+  if (product) {
+    const factor = 1.14;
+    line.unitPrice = Math.round((product.basePrice * factor) / 500) * 500;
   }
+  const quote = shippingQuote('cordoba');
+  const order: Order = {
+    id: newOrderId(),
+    lines: [line],
+    subtotal: line.unitPrice,
+    shippingCost: quote.cost,
+    total: line.unitPrice + quote.cost,
+    province: 'cordoba',
+    shippingDays: quote.days,
+    productionDays: product?.days ?? 15,
+    customer: DEMO_CUSTOMER,
+    payment: 'tarjeta',
+    placedAt: s.sim.clock - 24 * 4,
+    createdAt: Date.now(),
+  };
+  update((d) => {
+    d.orders.unshift(order);
+  });
+  return order;
 }
-
-/** Busca un pedido por número (case-insensitive). */
-export function findOrderByNumero(numero: string): OrderRecord | null {
-  const target = numero.trim().toUpperCase();
-  if (!target) return null;
-  return $orders.get().find((o) => o.numero.toUpperCase() === target) ?? null;
-}
-
-/** Filtra los pedidos por email (normalizado a lower-case). */
-export function ordersForEmail(email: string): OrderRecord[] {
-  const key = email.trim().toLowerCase();
-  if (!key) return [];
-  return $orders.get().filter((o) => o.clienteEmailKey === key);
-}
-
-/** Suscripción convenience. */
-export function subscribeOrders(fn: (o: readonly OrderRecord[]) => void): () => void {
-  return $orders.subscribe(fn);
-}
-
-export { atom };

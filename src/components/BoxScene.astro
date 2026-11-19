@@ -1,0 +1,99 @@
+---
+/**
+ * "Carrito": the piece drops into a box, the flaps close, tape goes on and a label is printed.
+ * Listens to `box:play` and `box:set` (rebuild for another piece) events.
+ */
+import type { Product, SizeId } from '../data/catalog';
+import { boxSceneSvg } from '../lib/box';
+
+interface Props {
+  product: Product;
+  size?: SizeId;
+  wood?: string;
+  fabric?: string | null;
+  to?: string;
+  city?: string;
+  id: string;
+  autoplay?: boolean;
+}
+const { product, size = 'm', wood = product.defaultWood, fabric = product.defaultFabric, to = 'Martina Herrera', city = 'Córdoba', id, autoplay = true } = Astro.props;
+const { svg, geo } = boxSceneSvg({ productId: product.id, size, wood, fabric, to, city, id });
+---
+<div class="box-scene" data-box={id} data-geo={JSON.stringify(geo)} data-autoplay={autoplay ? '1' : '0'} set:html={svg} />
+
+<script>
+  import { mount, prefersReducedMotion, whenVisible } from '../lib/page';
+  import { loadGsap } from '../lib/gsap';
+  import { boxSceneSvg, flapPoints, type BoxDims, type BoxSceneOptions, type FlapId } from '../lib/box';
+
+  mount<HTMLElement>('[data-box]', (root) => {
+    const reduced = prefersReducedMotion();
+    let geo = JSON.parse(root.dataset['geo'] ?? '{}') as BoxDims & { drop: number };
+    let tl: { kill: () => void } | null = null;
+    const angles: Record<FlapId, number> = { left: 90, right: 90, back: 90, front: 90 };
+    const q = <T extends Element>(sel: string) => root.querySelector<T>(sel);
+    const drawFlaps = () => {
+      root.querySelectorAll<SVGPolygonElement>('[data-flap]').forEach((f) => {
+        const id = f.dataset['flap'] as FlapId;
+        f.setAttribute('points', flapPoints(geo, id, angles[id]));
+      });
+    };
+    const openState = () => {
+      (Object.keys(angles) as FlapId[]).forEach((id) => (angles[id] = -115));
+      drawFlaps();
+      const drop = q<SVGGElement>('[data-drop]');
+      const tape = q<SVGPolygonElement>('[data-tape]');
+      const label = q<SVGGElement>('[data-label]');
+      if (drop) drop.style.opacity = '0';
+      if (tape) tape.style.opacity = '0';
+      if (label) label.style.opacity = '0';
+    };
+
+    async function play(): Promise<void> {
+      const drop = q<SVGGElement>('[data-drop]');
+      const tape = q<SVGPolygonElement>('[data-tape]');
+      const label = q<SVGGElement>('[data-label]');
+      if (reduced || !drop || !tape || !label) return;
+      const gsap = await loadGsap();
+      tl?.kill();
+      (Object.keys(angles) as FlapId[]).forEach((id) => (angles[id] = -115));
+      drawFlaps();
+      gsap.set(drop, { y: -geo.drop, opacity: 0 });
+      gsap.set(tape, { opacity: 0 });
+      gsap.set(label, { opacity: 0, scale: 1.25, transformOrigin: '50% 50%' });
+      const t = gsap.timeline({ delay: 0.2 });
+      t.to(drop, { opacity: 1, duration: 0.25 })
+        .to(drop, { y: 0, duration: 0.85, ease: 'bounce.out' }, '<')
+        .to(angles, { left: 90, right: 90, duration: 0.55, ease: 'power2.inOut', onUpdate: drawFlaps }, '+=0.15')
+        .to(angles, { back: 90, duration: 0.5, ease: 'power2.inOut', onUpdate: drawFlaps }, '-=0.1')
+        .to(angles, { front: 90, duration: 0.5, ease: 'power2.inOut', onUpdate: drawFlaps }, '-=0.25')
+        .to(tape, { opacity: 1, duration: 0.3 })
+        .to(label, { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2)' }, '+=0.05');
+      tl = t;
+    }
+
+    root.addEventListener('box:play', () => void play());
+    root.addEventListener('box:set', (event) => {
+      const opts = (event as CustomEvent<BoxSceneOptions & { play?: boolean }>).detail;
+      const built = boxSceneSvg(opts);
+      if (!built.svg) return;
+      tl?.kill();
+      root.innerHTML = built.svg;
+      geo = built.geo;
+      if (opts.play && !reduced) {
+        openState();
+        void play();
+      }
+    });
+
+    let stop = () => {};
+    if (root.dataset['autoplay'] === '1' && !reduced) {
+      openState();
+      stop = whenVisible(root, () => void play(), '-20% 0px');
+    }
+    return () => {
+      stop();
+      tl?.kill();
+    };
+  });
+</script>

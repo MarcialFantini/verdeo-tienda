@@ -1,0 +1,212 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { MAP_H, MAP_W, OUTLINE_PATH } from '../data/argentina';
+---
+<Layout title="Seguimiento de pedido" view="order">
+  <div class="order wrap" data-order-view>
+    <div class="order-skeleton" data-order-skeleton aria-hidden="true">
+      <span class="skeleton sk-title"></span>
+      <span class="skeleton sk-line"></span>
+      <span class="skeleton sk-block"></span>
+    </div>
+
+    <div class="order-none" data-order-none hidden>
+      <header class="page-head">
+        <h1>Seguimiento</h1>
+        <p class="lede">Todavía no hiciste ningún pedido. Podés comprar algo del catálogo o crear un pedido de ejemplo para ver cómo avanza en el taller.</p>
+      </header>
+      <div class="none-actions">
+        <button class="btn" type="button" data-sample>Crear un pedido de ejemplo</button>
+        <a class="btn ghost" href="/catalogo">Ir al catálogo</a>
+      </div>
+    </div>
+
+    <div class="order-main" data-order-main hidden>
+      <p class="thanks" data-thanks hidden></p>
+      <header class="order-head">
+        <div>
+          <h1 data-order-title>Pedido</h1>
+          <p class="lede" data-order-sub></p>
+        </div>
+        <div class="order-status">
+          <p class="status-big serif num" data-status-big>Día 1</p>
+          <p class="status-label" data-status-label aria-live="polite"></p>
+        </div>
+      </header>
+
+      <div class="track">
+        <ol class="track-steps" data-track-steps aria-label="Etapas del pedido"></ol>
+        <div class="progress dark" aria-hidden="true"><span data-track-bar></span></div>
+        <div class="track-actions">
+          <button class="btn small" type="button" data-advance>Adelantar un día</button>
+          <button class="btn small ghost" type="button" data-advance-week>Adelantar una semana</button>
+          <p class="muted track-hint">El reloj de la demo corre solo: un día del taller dura 24 segundos a velocidad 1×.</p>
+        </div>
+      </div>
+
+      <div class="order-grid">
+        <section class="order-map" aria-labelledby="route-h">
+          <h2 id="route-h">Ruta</h2>
+          <svg class="map" viewBox={`0 0 ${MAP_W} ${MAP_H}`} role="img" aria-label="Mapa con la posición del camión">
+            <path d={OUTLINE_PATH} class="map-land" />
+            <path d="" class="map-route ghost" data-route-full />
+            <path d="" class="map-route" data-route-done pathLength="1" />
+            <circle r="7" class="map-dot origin" data-origin />
+            <circle r="6" class="map-dot dest" data-dest />
+            <g data-truck class="truck">
+              <g transform="translate(-14 -12)">
+                <rect x="0" y="4" width="18" height="12" class="truck-box" />
+                <rect x="18" y="8" width="9" height="8" class="truck-cab" />
+                <circle cx="6" cy="18" r="3" class="truck-wheel" />
+                <circle cx="22" cy="18" r="3" class="truck-wheel" />
+              </g>
+            </g>
+          </svg>
+          <p class="muted" data-route-text></p>
+        </section>
+
+        <section class="order-detail" aria-labelledby="items-h">
+          <h2 id="items-h">Qué pediste</h2>
+          <ul class="co-lines" data-order-lines></ul>
+          <dl class="totals num" data-order-totals></dl>
+          <dl class="review" data-order-customer></dl>
+          <div class="order-others" data-others></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { mount, escapeHtml } from '../lib/page';
+  import { getProduct, stagePlan } from '../data/catalog';
+  import { ORIGIN, PROVINCES, projectGeo, routePath, shippingQuote } from '../data/argentina';
+  import { formatPrice } from '../lib/format';
+  import { getState, subscribe, type Order } from '../lib/store';
+  import { advance, onTick, orderProgress } from '../lib/sim';
+  import { lineLabel, sampleOrder } from '../lib/orders';
+  import { thumbSvg, simClockLabel } from '../lib/ui';
+  import { navigate } from 'astro:transitions/client';
+
+  mount<HTMLElement>('[data-order-view]', (root) => {
+    const params = new URLSearchParams(window.location.search);
+    const $ = <T extends Element = HTMLElement>(sel: string) => root.querySelector<T>(sel);
+    let staticSig = '';
+
+    const findOrder = (): Order | undefined => {
+      const orders = getState().orders;
+      const id = params.get('id');
+      return (id ? orders.find((o) => o.id === id) : undefined) ?? orders[0];
+    };
+
+    function renderStatic(order: Order): void {
+      const title = $('[data-order-title]');
+      if (title) title.textContent = `Pedido ${order.id}`;
+      const sub = $('[data-order-sub]');
+      const q = shippingQuote(order.province);
+      if (sub) sub.textContent = `${order.lines.reduce((n, l) => n + l.qty, 0)} ${order.lines.length === 1 && order.lines[0]?.qty === 1 ? 'mueble' : 'muebles'} para ${order.customer.name}, ${q.province.name}. Hecho el ${simClockLabel(order.placedAt).toLowerCase()}.`;
+      const thanks = $('[data-thanks]');
+      if (thanks && params.get('nuevo') === '1') {
+        thanks.hidden = false;
+        thanks.textContent = `Gracias, ${order.customer.name.split(' ')[0]}. Tu pedido ya está en el taller.`;
+      }
+      const lines = $('[data-order-lines]');
+      if (lines) lines.innerHTML = order.lines.map((l) => {
+        const p = getProduct(l.productId);
+        return p ? `<li><span class="thumb">${thumbSvg(p.id, { wood: l.wood, fabric: l.fabric, size: l.size })}</span><span><a href="/producto/${p.slug}"><strong>${escapeHtml(p.name)}</strong></a> <span class="num">× ${l.qty}</span><small>${escapeHtml(lineLabel(l))}</small></span><span class="num">${formatPrice(l.unitPrice * l.qty)}</span></li>` : '';
+      }).join('');
+      const totals = $('[data-order-totals]');
+      if (totals) totals.innerHTML = `<div><dt>Subtotal</dt><dd>${formatPrice(order.subtotal)}</dd></div><div><dt>Envío</dt><dd>${order.shippingCost ? formatPrice(order.shippingCost) : 'Sin cargo'}</dd></div><div class="grand"><dt>Total</dt><dd>${formatPrice(order.total)}</dd></div>`;
+      const customer = $('[data-order-customer]');
+      if (customer) customer.innerHTML = [['Entrega', `${order.customer.address}, ${order.customer.city}`], ['Contacto', `${order.customer.email}`], ['Pago', { tarjeta: 'Tarjeta de prueba', transferencia: 'Transferencia', efectivo: 'Efectivo al retirar' }[order.payment]]].map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHtml(v ?? '')}</dd></div>`).join('');
+      const others = $('[data-others]');
+      const rest = getState().orders.filter((o) => o.id !== order.id);
+      if (others) others.innerHTML = rest.length ? `<h3>Otros pedidos</h3><ul>${rest.map((o) => `<li><a href="/pedido?id=${o.id}">${o.id}</a> <span class="muted">${escapeHtml(orderProgress(o).label)}</span></li>`).join('')}</ul>` : '';
+      // map geometry
+      const d = routePath(order.province);
+      $('[data-route-full]')?.setAttribute('d', d);
+      $('[data-route-done]')?.setAttribute('d', d);
+      const [ox, oy] = projectGeo(ORIGIN.lon, ORIGIN.lat);
+      const dest = PROVINCES.find((p) => p.id === order.province) ?? ORIGIN;
+      const [dx, dy] = projectGeo(dest.lon, dest.lat);
+      $('[data-origin]')?.setAttribute('cx', String(ox));
+      $('[data-origin]')?.setAttribute('cy', String(oy));
+      $('[data-dest]')?.setAttribute('cx', String(dx));
+      $('[data-dest]')?.setAttribute('cy', String(dy));
+    }
+
+    function renderLive(order: Order): void {
+      const pr = orderProgress(order);
+      const plan = stagePlan(order.productionDays);
+      const big = $('[data-status-big]');
+      if (big) big.textContent = pr.phase === 'production' ? `Día ${pr.day} de ${order.productionDays}` : pr.phase === 'shipping' ? 'En camino' : 'Entregado';
+      const label = $('[data-status-label]');
+      if (label) label.textContent = pr.phase === 'production' ? `${pr.stageName}: ${plan[pr.stageIndex]?.text ?? ''}` : pr.label;
+      const steps = $('[data-track-steps]');
+      if (steps) {
+        const all = [...plan.map((p) => ({ name: p.name, sub: p.from === p.to ? `Día ${p.from}` : `Días ${p.from} a ${p.to}` })), { name: 'Envío', sub: `${order.shippingDays} ${order.shippingDays === 1 ? 'día' : 'días'}` }, { name: 'Entregado', sub: shippingQuote(order.province).province.name }];
+        const html = all.map((st, i) => `<li class="${i < pr.stageIndex ? 'done' : i === pr.stageIndex ? 'active' : ''}"${i === pr.stageIndex ? ' aria-current="step"' : ''}><strong>${st.name}</strong><small>${st.sub}</small></li>`).join('');
+        if (steps.innerHTML !== html) steps.innerHTML = html;
+      }
+      const total = order.productionDays + order.shippingDays;
+      const done = pr.phase === 'production' ? pr.production * order.productionDays : pr.phase === 'shipping' ? order.productionDays + pr.shipping * order.shippingDays : total;
+      const bar = $('[data-track-bar]');
+      if (bar) bar.style.transform = `scaleX(${Math.min(1, done / total)})`;
+      const route = $<SVGPathElement>('[data-route-done]');
+      const truck = $<SVGGElement>('[data-truck]');
+      const full = $<SVGPathElement>('[data-route-full]');
+      if (route && truck && full) {
+        const f = pr.shipping;
+        route.style.strokeDashoffset = String(1 - f);
+        const len = full.getTotalLength();
+        const pt = full.getPointAtLength(len * f);
+        truck.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`);
+      }
+      const text = $('[data-route-text]');
+      if (text) {
+        const q = shippingQuote(order.province);
+        text.textContent = pr.phase === 'production'
+          ? `El camión sale cuando termine la fabricación. Viaje de ${q.km} km a ${q.province.name}.`
+          : pr.phase === 'shipping' ? `Recorrió ${Math.round(q.km * pr.shipping)} de ${q.km} km.` : `Entregado en ${q.province.name}.`;
+      }
+    }
+
+    function render(): void {
+      const order = findOrder();
+      $('[data-order-skeleton]')?.setAttribute('hidden', '');
+      const none = $('[data-order-none]');
+      const main = $('[data-order-main]');
+      if (!order) {
+        if (none) none.hidden = false;
+        if (main) main.hidden = true;
+        return;
+      }
+      if (none) none.hidden = true;
+      if (main) main.hidden = false;
+      const sig = JSON.stringify([order.id, getState().orders.length]);
+      if (sig !== staticSig) {
+        staticSig = sig;
+        renderStatic(order);
+      }
+      renderLive(order);
+    }
+
+    $('[data-advance]')?.addEventListener('click', () => advance(24));
+    $('[data-advance-week]')?.addEventListener('click', () => advance(24 * 7));
+    $('[data-sample]')?.addEventListener('click', () => {
+      const o = sampleOrder();
+      void navigate(`/pedido?id=${o.id}`);
+    });
+
+    const t = window.setTimeout(render, 260);
+    const off = onTick(render);
+    const unsub = subscribe(() => {
+      if (!findOrder() || $('[data-order-main]')?.hidden) render();
+    });
+    return () => {
+      window.clearTimeout(t);
+      off();
+      unsub();
+    };
+  });
+</script>

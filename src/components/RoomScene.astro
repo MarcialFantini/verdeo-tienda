@@ -1,0 +1,209 @@
+---
+/**
+ * "En tu ambiente": an isometric room at real scale (cm) with a ruler on two floor edges.
+ * The piece is dragged with GSAP Draggable or moved with the arrow keys.
+ */
+import { getSize, type Product } from '../data/catalog';
+import { boxesMarkup, buildShape, project } from '../lib/iso';
+import { ROOM } from '../lib/room';
+
+interface Props {
+  product: Product;
+  id: string;
+}
+const { product, id } = Astro.props;
+const dims = getSize(product.kind, 'm');
+const { W, D, H } = ROOM;
+const P = (x: number, y: number, z: number) => project(x, y, z).map((n) => n.toFixed(1)).join(',');
+const poly = (pts: [number, number, number][]) => pts.map(([x, y, z]) => P(x, y, z)).join(' ');
+
+const startX = Math.round((W - dims.w) / 2 / 5) * 5;
+const startY = 60;
+const [tx, ty] = project(startX, startY, 0);
+
+// Ruler ticks along the front edge (y = D) and the right edge (x = W).
+const ticksX: string[] = [];
+const labelsX: { x: number; y: number; t: string }[] = [];
+for (let cm = 0; cm <= W; cm += 10) {
+  const len = cm % 100 === 0 ? 16 : cm % 50 === 0 ? 10 : 5;
+  const [x1, y1] = project(cm, D, 0);
+  const [x2, y2] = project(cm, D + len, 0);
+  ticksX.push(`M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`);
+  if (cm % 100 === 0) {
+    const [lx, ly] = project(cm, D + 30, 0);
+    labelsX.push({ x: lx, y: ly, t: `${cm}` });
+  }
+}
+const ticksY: string[] = [];
+const labelsY: { x: number; y: number; t: string }[] = [];
+for (let cm = 0; cm <= D; cm += 10) {
+  const len = cm % 100 === 0 ? 16 : cm % 50 === 0 ? 10 : 5;
+  const [x1, y1] = project(W, cm, 0);
+  const [x2, y2] = project(W + len, cm, 0);
+  ticksY.push(`M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`);
+  if (cm % 100 === 0) {
+    const [lx, ly] = project(W + 32, cm, 0);
+    labelsY.push({ x: lx, y: ly, t: `${cm}` });
+  }
+}
+const [minX] = project(0, D + 50, 0);
+const [maxX] = project(W + 50, 0, 0);
+const [, minY] = project(0, 0, H);
+const [, maxY] = project(W + 40, D + 40, 0);
+const viewBox = `${Math.floor(minX - 10)} ${Math.floor(minY - 10)} ${Math.ceil(maxX - minX + 20)} ${Math.ceil(maxY - minY + 20)}`;
+const boxes = buildShape(product.kind, dims);
+---
+<div class="room" data-room={id} data-product={product.id} data-x={startX} data-y={startY}>
+  <svg class="iso room-svg" viewBox={viewBox} role="img" aria-labelledby={`${id}-title`}>
+    <title id={`${id}-title`}>Habitación de {W / 100} por {D / 100} metros con {product.name}</title>
+    <polygon class="room-wall-a" points={poly([[0, 0, 0], [W, 0, 0], [W, 0, H], [0, 0, H]])} />
+    <polygon class="room-wall-b" points={poly([[0, 0, 0], [0, D, 0], [0, D, H], [0, 0, H]])} />
+    <polygon class="room-floor" points={poly([[0, 0, 0], [W, 0, 0], [W, D, 0], [0, D, 0]])} />
+    <!-- window with the Aconquija hills -->
+    <polygon class="room-window" points={poly([[150, 0, 95], [320, 0, 95], [320, 0, 225], [150, 0, 225]])} />
+    <polygon class="room-hill" points={poly([[150, 0, 95], [190, 0, 150], [225, 0, 128], [270, 0, 172], [320, 0, 140], [320, 0, 95]])} />
+    <!-- door on the left wall, 200 cm tall: a scale reference -->
+    <polygon class="room-door" points={poly([[0, 230, 0], [0, 310, 0], [0, 310, 200], [0, 230, 200]])} />
+    <!-- rug -->
+    <polygon class="room-rug" points={poly([[70, 120, 0.2], [330, 120, 0.2], [330, 300, 0.2], [70, 300, 0.2]])} />
+    <g class="ruler" aria-hidden="true">
+      <path d={ticksX.join('')} />
+      <path d={ticksY.join('')} />
+      {labelsX.map((l) => <text x={l.x} y={l.y} text-anchor="middle">{l.t}</text>)}
+      {labelsY.map((l) => <text x={l.x} y={l.y} text-anchor="middle">{l.t}</text>)}
+      <text x={labelsX.at(-1)?.x ?? 0} y={(labelsX.at(-1)?.y ?? 0) + 18} text-anchor="middle">cm</text>
+    </g>
+    <polygon class="ruler-span" data-span-x points="" />
+    <polygon class="ruler-span" data-span-y points="" />
+    <g
+      class="room-piece"
+      data-piece
+      data-wood={product.defaultWood}
+      data-fabric={product.defaultFabric ?? ''}
+      transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)})`}
+      tabindex="0"
+      role="img"
+      aria-roledescription="mueble movible"
+      aria-label={`${product.name}. Usá las flechas para moverlo por la habitación.`}
+      aria-describedby={`${id}-readout`}
+      set:html={boxesMarkup(boxes)}
+    />
+  </svg>
+  <p class="room-readout num" id={`${id}-readout`} aria-live="polite" data-readout>
+    Ocupa {dims.w} × {dims.d} cm. Está a {startX} cm de la puerta y a {startY} cm de la ventana.
+  </p>
+</div>
+
+<script>
+  import { mount, prefersReducedMotion, whenVisible } from '../lib/page';
+  import { getProduct, getSize, type Selection } from '../data/catalog';
+  import { boxesMarkup, buildShape, project } from '../lib/iso';
+  import { ROOM, floorFromScreen } from '../lib/room';
+  import { loadDraggable } from '../lib/gsap';
+  import type { Draggable as DraggableT } from 'gsap/Draggable';
+
+  mount<HTMLElement>('[data-room]', (root) => {
+    const product = getProduct(root.dataset['product'] ?? '');
+    const piece = root.querySelector<SVGGElement>('[data-piece]');
+    const readout = root.querySelector<HTMLElement>('[data-readout]');
+    const spanX = root.querySelector<SVGPolygonElement>('[data-span-x]');
+    const spanY = root.querySelector<SVGPolygonElement>('[data-span-y]');
+    if (!product || !piece || !readout || !spanX || !spanY) return;
+    let dims = getSize(product.kind, 'm');
+    let fx = Number(root.dataset['x'] ?? 0);
+    let fy = Number(root.dataset['y'] ?? 0);
+    const clamp = (v: number, max: number) => Math.min(Math.max(0, v), Math.max(0, max));
+    const pts = (list: [number, number, number][]) => list.map(([x, y, z]) => project(x, y, z).map((n) => n.toFixed(1)).join(',')).join(' ');
+
+    function paint(announce = false): void {
+      if (!piece || !readout || !spanX || !spanY) return;
+      const [tx, ty] = project(fx, fy, 0);
+      piece.setAttribute('transform', `translate(${tx.toFixed(1)} ${ty.toFixed(1)})`);
+      spanX.setAttribute('points', pts([[fx, ROOM.D, 0], [fx + dims.w, ROOM.D, 0], [fx + dims.w, ROOM.D + 9, 0], [fx, ROOM.D + 9, 0]]));
+      spanY.setAttribute('points', pts([[ROOM.W, fy, 0], [ROOM.W, fy + dims.d, 0], [ROOM.W + 9, fy + dims.d, 0], [ROOM.W + 9, fy, 0]]));
+      const text = `Ocupa ${dims.w} × ${dims.d} cm. Está a ${Math.round(fx)} cm de la puerta y a ${Math.round(fy)} cm de la ventana.`;
+      if (announce || readout.textContent !== text) readout.textContent = text;
+    }
+
+    piece.addEventListener('keydown', (event) => {
+      const step = event.shiftKey ? 25 : 5;
+      const moves: Record<string, [number, number]> = {
+        ArrowRight: [step, 0], ArrowLeft: [-step, 0], ArrowDown: [0, step], ArrowUp: [0, -step],
+      };
+      const move = moves[event.key];
+      if (!move) return;
+      event.preventDefault();
+      fx = clamp(fx + move[0], ROOM.W - dims.w);
+      fy = clamp(fy + move[1], ROOM.D - dims.d);
+      paint(true);
+    });
+
+    const onSelection = (event: Event) => {
+      const sel = (event as CustomEvent<Selection>).detail;
+      if (!sel || !piece || (event.target as HTMLElement).dataset['product'] !== product.id) return;
+      piece.dataset['wood'] = sel.wood;
+      piece.dataset['fabric'] = sel.fabric ?? '';
+      const next = getSize(product.kind, sel.size);
+      if (next.w !== dims.w || next.d !== dims.d) {
+        dims = next;
+        piece.innerHTML = boxesMarkup(buildShape(product.kind, dims));
+        fx = clamp(fx, ROOM.W - dims.w);
+        fy = clamp(fy, ROOM.D - dims.d);
+        paint();
+      }
+    };
+    document.addEventListener('selection', onSelection);
+
+    // public hook for the showcase
+    root.addEventListener('room:move', (event) => {
+      const detail = (event as CustomEvent<{ x: number; y: number }>).detail;
+      fx = clamp(detail.x, ROOM.W - dims.w);
+      fy = clamp(detail.y, ROOM.D - dims.d);
+      paint();
+    });
+
+    paint();
+    let drag: { kill: () => void } | null = null;
+    const stopWatch = whenVisible(root, () => {
+      void loadDraggable().then(({ Draggable }) => {
+        const svg = root.querySelector<SVGSVGElement>('svg');
+        if (!svg || !piece) return;
+        let startFx = 0;
+        let startFy = 0;
+        let startPx = 0;
+        let startPy = 0;
+        const proxy = document.createElement('div');
+        const [instance] = Draggable.create(proxy, {
+          trigger: piece,
+          type: 'x,y',
+          cursor: 'grab',
+          activeCursor: 'grabbing',
+          onPress(this: DraggableT) {
+            startFx = fx;
+            startFy = fy;
+            startPx = this.pointerX;
+            startPy = this.pointerY;
+            piece.classList.add('dragging');
+          },
+          onDrag(this: DraggableT) {
+            const scale = svg.getScreenCTM()?.a ?? 1;
+            const { dx, dy } = floorFromScreen((this.pointerX - startPx) / scale, (this.pointerY - startPy) / scale);
+            fx = clamp(Math.round((startFx + dx) / 5) * 5, ROOM.W - dims.w);
+            fy = clamp(Math.round((startFy + dy) / 5) * 5, ROOM.D - dims.d);
+            paint();
+          },
+          onRelease() {
+            piece.classList.remove('dragging');
+          },
+        });
+        drag = instance ?? null;
+      });
+    });
+    if (prefersReducedMotion()) piece.classList.add('still');
+    return () => {
+      stopWatch();
+      drag?.kill();
+      document.removeEventListener('selection', onSelection);
+    };
+  });
+</script>

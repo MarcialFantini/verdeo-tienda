@@ -1,0 +1,304 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ShippingMap from '../components/ShippingMap.astro';
+import Icon from '../components/Icon.astro';
+
+const steps = [
+  { id: 'datos', label: 'Tus datos' },
+  { id: 'envio', label: 'Envío' },
+  { id: 'pago', label: 'Pago' },
+  { id: 'revision', label: 'Revisión' },
+];
+---
+<Layout title="Finalizar compra" view="checkout">
+  <div class="checkout wrap" data-checkout-view>
+    <header class="page-head">
+      <h1>Finalizar compra</h1>
+      <p class="lede">Los datos ya vienen cargados con valores de prueba. Podés cambiarlos: nada sale de tu navegador.</p>
+    </header>
+
+    <div class="co-stage">
+    <div class="co-empty" data-co-empty hidden>
+      <h2>No hay nada para comprar todavía</h2>
+      <p>Agregá un mueble al carrito y volvé.</p>
+      <a class="btn" href="/catalogo">Ir al catálogo</a>
+    </div>
+
+    <div class="co-grid" data-co-grid hidden>
+      <div class="co-main">
+        <ol class="stepper-nav" data-steps>
+          {steps.map((s, i) => (
+            <li data-step-nav={s.id} aria-current={i === 0 ? 'step' : undefined}>
+              <span class="sn-mark" aria-hidden="true"></span>{s.label}
+            </li>
+          ))}
+        </ol>
+
+        <form class="co-form" data-co-form novalidate>
+          <fieldset class="co-step" data-step="datos">
+            <legend><h2>Tus datos</h2></legend>
+            <div class="form-grid">
+              <label class="field span-2"><span class="label">Nombre y apellido</span><input name="name" autocomplete="name" required /></label>
+              <label class="field"><span class="label">Email</span><input name="email" type="email" autocomplete="email" required /></label>
+              <label class="field"><span class="label">Teléfono</span><input name="phone" type="tel" autocomplete="tel" required /></label>
+              <label class="field"><span class="label">DNI</span><input name="dni" inputmode="numeric" required /></label>
+              <label class="field"><span class="label">Ciudad</span><input name="city" autocomplete="address-level2" required /></label>
+              <label class="field span-2"><span class="label">Dirección</span><input name="address" autocomplete="street-address" required /></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="co-step" data-step="envio" hidden>
+            <legend><h2>Envío</h2></legend>
+            <fieldset class="choices">
+              <legend>Cómo lo recibís</legend>
+              <label class="choice"><input type="radio" name="delivery" value="domicilio" checked /><span>Envío a domicilio</span></label>
+              <label class="choice"><input type="radio" name="delivery" value="retiro" /><span>Retiro en el taller (sin cargo)</span></label>
+            </fieldset>
+            <div class="co-map" data-co-map>
+              <ShippingMap id="co-map" initial="state" compact />
+            </div>
+          </fieldset>
+
+          <fieldset class="co-step" data-step="pago" hidden>
+            <legend><h2>Pago</h2></legend>
+            <p class="co-banner"><Icon name="check" size={20} /> Pago simulado. Usá la tarjeta de prueba; no se procesa ningún cobro.</p>
+            <fieldset class="choices">
+              <legend>Medio de pago</legend>
+              <label class="choice"><input type="radio" name="payment" value="tarjeta" checked /><span>Tarjeta</span></label>
+              <label class="choice"><input type="radio" name="payment" value="transferencia" /><span>Transferencia</span></label>
+              <label class="choice"><input type="radio" name="payment" value="efectivo" /><span>Efectivo al retirar</span></label>
+            </fieldset>
+            <div class="form-grid" data-pay="tarjeta">
+              <label class="field span-2"><span class="label">Número de tarjeta</span><input name="card" inputmode="numeric" autocomplete="off" value="4242 4242 4242 4242" /></label>
+              <label class="field"><span class="label">Vencimiento</span><input name="exp" inputmode="numeric" autocomplete="off" value="12/29" /></label>
+              <label class="field"><span class="label">Código</span><input name="cvc" inputmode="numeric" autocomplete="off" value="123" /></label>
+              <label class="field span-2"><span class="label">Cuotas</span>
+                <select name="installments">
+                  <option value="1">1 pago</option>
+                  <option value="3" selected>3 cuotas sin interés</option>
+                  <option value="6">6 cuotas sin interés</option>
+                </select>
+              </label>
+            </div>
+            <div class="pay-note" data-pay="transferencia" hidden>
+              <p>Te mostramos un CBU de prueba al confirmar: <strong class="num">0000003100099999999999</strong>. El taller arranca cuando se acredita (en la demo, al instante).</p>
+            </div>
+            <div class="pay-note" data-pay="efectivo" hidden>
+              <p>Pagás al retirar en el taller de Yerba Buena. Reservamos tu cupo de fabricación ahora.</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="co-step" data-step="revision" hidden>
+            <legend><h2>Revisión</h2></legend>
+            <dl class="review" data-review></dl>
+            <label class="check"><input type="checkbox" name="terms" checked required /> Entiendo que es una demo y que no se cobra nada.</label>
+          </fieldset>
+
+          <p class="form-error" role="alert" data-form-error hidden></p>
+
+          <div class="co-actions">
+            <button type="button" class="btn ghost" data-back hidden>Volver</button>
+            <button type="submit" class="btn" data-next>Continuar</button>
+          </div>
+          <ol class="processing" data-processing hidden aria-live="polite">
+            <li>Validando la tarjeta de prueba</li>
+            <li>Reservando tu cupo en el taller</li>
+            <li>Imprimiendo la orden de taller</li>
+          </ol>
+        </form>
+      </div>
+
+      <aside class="co-side" aria-labelledby="co-summary">
+        <h2 id="co-summary" class="side-title">Tu pedido</h2>
+        <ul class="co-lines" data-co-lines></ul>
+        <dl class="totals num">
+          <div><dt>Subtotal</dt><dd data-co-subtotal>—</dd></div>
+          <div><dt>Envío</dt><dd data-co-shipping>—</dd></div>
+          <div class="grand"><dt>Total</dt><dd data-co-total>—</dd></div>
+        </dl>
+        <p class="side-note" data-co-eta></p>
+      </aside>
+    </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+  import { mount, escapeHtml, prefersReducedMotion } from '../lib/page';
+  import { getProduct } from '../data/catalog';
+  import { shippingQuote } from '../data/argentina';
+  import { formatPrice } from '../lib/format';
+  import { cartSubtotal, getState, type Customer } from '../lib/store';
+  import { DEMO_CUSTOMER, lineLabel, placeOrder, productionDaysFor } from '../lib/orders';
+  import { announce, thumbSvg } from '../lib/ui';
+
+  const STEPS = ['datos', 'envio', 'pago', 'revision'] as const;
+  type Step = (typeof STEPS)[number];
+
+  mount<HTMLElement>('[data-checkout-view]', (root) => {
+    const form = root.querySelector<HTMLFormElement>('[data-co-form]');
+    const grid = root.querySelector<HTMLElement>('[data-co-grid]');
+    const empty = root.querySelector<HTMLElement>('[data-co-empty]');
+    const back = root.querySelector<HTMLButtonElement>('[data-back]');
+    const next = root.querySelector<HTMLButtonElement>('[data-next]');
+    const error = root.querySelector<HTMLElement>('[data-form-error]');
+    const shipSelect = root.querySelector<HTMLSelectElement>('[data-co-map] select');
+    if (!form || !grid || !empty || !back || !next || !error) return;
+    if (!getState().cart.length) {
+      empty.hidden = false;
+      return;
+    }
+    grid.hidden = false;
+    let step: Step = 'datos';
+    const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+    (Object.keys(DEMO_CUSTOMER) as (keyof Customer)[]).forEach((k) => {
+      const f = field(k);
+      if (f) f.value = DEMO_CUSTOMER[k];
+    });
+    const delivery = () => (new FormData(form).get('delivery') === 'retiro' ? 'retiro' : 'domicilio');
+    const payment = () => String(new FormData(form).get('payment') ?? 'tarjeta') as 'tarjeta' | 'transferencia' | 'efectivo';
+    const province = () => (delivery() === 'retiro' ? 'tucuman' : shipSelect?.value ?? getState().province);
+
+    function renderSummary(): void {
+      const s = getState();
+      const lines = root.querySelector('[data-co-lines]');
+      if (lines) {
+        lines.innerHTML = s.cart
+          .map((l) => {
+            const p = getProduct(l.productId);
+            return p ? `<li><span class="thumb">${thumbSvg(p.id, { wood: l.wood, fabric: l.fabric, size: l.size })}</span><span><strong>${escapeHtml(p.name)}</strong> <span class="num">× ${l.qty}</span><small>${escapeHtml(lineLabel(l))}</small></span><span class="num">${formatPrice(l.unitPrice * l.qty)}</span></li>` : '';
+          })
+          .join('');
+      }
+      const sub = cartSubtotal(s);
+      const q = shippingQuote(province());
+      const cost = delivery() === 'retiro' ? 0 : q.cost;
+      const set = (sel: string, text: string) => {
+        const n = root.querySelector(sel);
+        if (n) n.textContent = text;
+      };
+      set('[data-co-subtotal]', formatPrice(sub));
+      set('[data-co-shipping]', cost ? formatPrice(cost) : 'Sin cargo');
+      set('[data-co-total]', formatPrice(sub + cost));
+      set('[data-co-eta]', `Fabricación ${productionDaysFor(s.cart)} días, después ${delivery() === 'retiro' ? 'lo retirás en el taller' : `${q.days} días de viaje a ${q.province.name}`}.`);
+    }
+
+    function show(target: Step, focus = true): void {
+      step = target;
+      const index = STEPS.indexOf(step);
+      root.querySelectorAll<HTMLElement>('[data-step]').forEach((el) => {
+        el.hidden = el.dataset['step'] !== step;
+      });
+      root.querySelectorAll<HTMLElement>('[data-step-nav]').forEach((li, i) => {
+        li.classList.toggle('done', i < index);
+        if (i === index) li.setAttribute('aria-current', 'step');
+        else li.removeAttribute('aria-current');
+      });
+      if (back) back.hidden = index === 0;
+      if (next) next.textContent = step === 'revision' ? 'Confirmar pedido' : 'Continuar';
+      if (error) error.hidden = true;
+      if (step === 'revision') renderReview();
+      if (focus) {
+        const legend = root.querySelector<HTMLElement>(`[data-step="${step}"] h2`);
+        legend?.setAttribute('tabindex', '-1');
+        legend?.focus();
+      }
+      const el = root.querySelector<HTMLElement>(`[data-step="${step}"]`);
+      if (el && !prefersReducedMotion()) el.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.7,.1,1)' });
+      renderSummary();
+    }
+
+    function validate(): boolean {
+      if (!form || !error) return false;
+      const current = root.querySelector<HTMLElement>(`[data-step="${step}"]`);
+      const invalid: string[] = [];
+      current?.querySelectorAll<HTMLInputElement>('input[required]').forEach((input) => {
+        let ok = input.type === 'checkbox' ? input.checked : input.value.trim().length > 1;
+        if (ok && input.type === 'email') ok = /.+@.+\..+/.test(input.value);
+        input.setAttribute('aria-invalid', String(!ok));
+        if (!ok) invalid.push(input.closest('label')?.querySelector('.label')?.textContent ?? input.name);
+      });
+      if (step === 'pago' && payment() === 'tarjeta') {
+        const card = field('card');
+        const digits = (card?.value ?? '').replace(/\D/g, '');
+        const ok = digits.length === 16;
+        card?.setAttribute('aria-invalid', String(!ok));
+        if (!ok) invalid.push('Número de tarjeta (16 dígitos)');
+      }
+      if (invalid.length) {
+        error.textContent = `Revisá: ${invalid.join(', ')}.`;
+        error.hidden = false;
+        root.querySelector<HTMLElement>(`[data-step="${step}"] [aria-invalid="true"]`)?.focus();
+        return false;
+      }
+      error.hidden = true;
+      return true;
+    }
+
+    function renderReview(): void {
+      const box = root.querySelector('[data-review]');
+      if (!box || !form) return;
+      const data = new FormData(form);
+      const q = shippingQuote(province());
+      const payLabel = { tarjeta: `Tarjeta terminada en ${String(data.get('card') ?? '').replace(/\D/g, '').slice(-4)} · ${data.get('installments')} ${data.get('installments') === '1' ? 'pago' : 'cuotas'}`, transferencia: 'Transferencia bancaria', efectivo: 'Efectivo al retirar' }[payment()];
+      const rows: [string, string][] = [
+        ['Para', `${data.get('name')} · DNI ${data.get('dni')}`],
+        ['Contacto', `${data.get('email')} · ${data.get('phone')}`],
+        ['Entrega', delivery() === 'retiro' ? 'Retiro en el taller de Yerba Buena' : `${data.get('address')}, ${data.get('city')} (${q.province.name}) · ${q.days} días de viaje`],
+        ['Pago', payLabel],
+      ];
+      box.innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHtml(v)}</dd></div>`).join('');
+    }
+
+    async function submit(): Promise<void> {
+      if (!form || !next || !back) return;
+      const proc = root.querySelector<HTMLElement>('[data-processing]');
+      next.disabled = true;
+      back.disabled = true;
+      next.textContent = 'Procesando…';
+      if (proc) {
+        proc.hidden = false;
+        const items = Array.from(proc.querySelectorAll('li'));
+        for (const li of items) {
+          await new Promise((r) => window.setTimeout(r, prefersReducedMotion() ? 120 : 520));
+          li.classList.add('ok');
+        }
+      }
+      const data = new FormData(form);
+      const customer: Customer = {
+        name: String(data.get('name')), email: String(data.get('email')), phone: String(data.get('phone')),
+        dni: String(data.get('dni')), address: String(data.get('address')), city: String(data.get('city')),
+      };
+      const order = placeOrder({ customer, province: province(), pickup: delivery() === 'retiro', payment: payment() });
+      announce(`Pedido ${order.id} confirmado.`);
+      await navigate(`/pedido?id=${order.id}&nuevo=1`);
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!validate()) return;
+      const index = STEPS.indexOf(step);
+      if (step === 'revision') {
+        void submit();
+        return;
+      }
+      show(STEPS[index + 1] ?? 'revision');
+    });
+    back.addEventListener('click', () => show(STEPS[Math.max(0, STEPS.indexOf(step) - 1)] ?? 'datos'));
+    form.addEventListener('change', (event) => {
+      const t = event.target as HTMLInputElement;
+      if (t.name === 'payment') {
+        root.querySelectorAll<HTMLElement>('[data-pay]').forEach((el) => {
+          el.hidden = el.dataset['pay'] !== t.value;
+        });
+      }
+      if (t.name === 'delivery') {
+        const map = root.querySelector<HTMLElement>('[data-co-map]');
+        if (map) map.hidden = t.value === 'retiro';
+      }
+      renderSummary();
+    });
+    show('datos', false);
+  });
+</script>

@@ -1,0 +1,136 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { KINDS, PRODUCTS, type Kind } from '../data/catalog';
+
+const groups = (Object.keys(KINDS) as Kind[]).map((k) => ({ label: KINDS[k].plural, items: PRODUCTS.filter((p) => p.kind === k) }));
+const slots = [
+  { id: 'a', label: 'Primer mueble', def: 'rl-001' },
+  { id: 'b', label: 'Segundo mueble', def: 'rl-004' },
+];
+---
+<Layout title="Comparar medidas" view="compare">
+  <div class="wrap compare" data-compare-view>
+    <header class="page-head">
+      <h1>Comparar medidas</h1>
+      <p class="lede">Dos muebles superpuestos a la misma escala, de frente y desde arriba. Ideal para saber si la silla entra bajo la mesa.</p>
+    </header>
+
+    <div class="cmp-pickers">
+      {slots.map((slot) => (
+        <fieldset class={`cmp-picker cmp-${slot.id}`}>
+          <legend><span class="cmp-swatch" aria-hidden="true"></span>{slot.label}</legend>
+          <label class="field">
+            <span class="sr-only">{slot.label}</span>
+            <select data-cmp-product={slot.id}>
+              {groups.map((g) => (
+                <optgroup label={g.label}>
+                  {g.items.map((p) => <option value={p.id} selected={p.id === slot.def}>{p.name}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label class="field">
+            <span class="label">Medida</span>
+            <select data-cmp-size={slot.id}>
+              <option value="s">Chica</option>
+              <option value="m" selected>Estándar</option>
+              <option value="l">Grande</option>
+            </select>
+          </label>
+        </fieldset>
+      ))}
+    </div>
+
+    <div class="cmp-views">
+      <figure class="cmp-figure">
+        <figcaption>De frente</figcaption>
+        <svg class="cmp-svg" data-cmp-front role="img" aria-label="Vista de frente de los dos muebles superpuestos"></svg>
+      </figure>
+      <figure class="cmp-figure">
+        <figcaption>Desde arriba</figcaption>
+        <svg class="cmp-svg" data-cmp-top role="img" aria-label="Vista desde arriba de los dos muebles superpuestos"></svg>
+      </figure>
+    </div>
+
+    <dl class="cmp-table num" data-cmp-table aria-live="polite"></dl>
+  </div>
+</Layout>
+
+<script>
+  import { mount } from '../lib/page';
+  import { getProduct, getSize, KINDS, type SizeId } from '../data/catalog';
+  import { elevationRects } from '../lib/iso';
+  import { getState, update } from '../lib/store';
+
+  mount<HTMLElement>('[data-compare-view]', (root) => {
+    const $ = <T extends Element>(sel: string) => root.querySelector<T>(sel);
+    const selA = $<HTMLSelectElement>('[data-cmp-product="a"]');
+    const selB = $<HTMLSelectElement>('[data-cmp-product="b"]');
+    const sizeA = $<HTMLSelectElement>('[data-cmp-size="a"]');
+    const sizeB = $<HTMLSelectElement>('[data-cmp-size="b"]');
+    const front = $<SVGSVGElement>('[data-cmp-front]');
+    const top = $<SVGSVGElement>('[data-cmp-top]');
+    const table = $<HTMLElement>('[data-cmp-table]');
+    if (!selA || !selB || !sizeA || !sizeB || !front || !top || !table) return;
+    const [ca, cb] = getState().compare;
+    if (ca && getProduct(ca)) selA.value = ca;
+    if (cb && getProduct(cb)) selB.value = cb;
+
+    const labelSizes = (sel: HTMLSelectElement, sizeSel: HTMLSelectElement) => {
+      const p = getProduct(sel.value);
+      if (!p) return;
+      KINDS[p.kind].sizes.forEach((s, i) => {
+        const opt = sizeSel.options[i];
+        if (opt) opt.textContent = `${s.label} · ${s.w} × ${s.d} × ${s.h} cm`;
+      });
+    };
+
+    function ruler(maxW: number, maxH: number, pad: number): string {
+      const fs = Math.max(maxW, maxH) * 0.04;
+      let out = '';
+      for (let cm = 0; cm <= maxW; cm += 10) {
+        const len = cm % 50 === 0 ? 10 : 5;
+        out += `<path d="M${pad + cm} ${pad + maxH + 4}v${len}" class="cmp-tick"/>`;
+        if (cm % 50 === 0) out += `<text x="${pad + cm}" y="${pad + maxH + 30}" text-anchor="middle" class="cmp-num" font-size="${fs.toFixed(1)}">${cm}</text>`;
+      }
+      for (let cm = 0; cm <= maxH; cm += 10) {
+        const len = cm % 50 === 0 ? 10 : 5;
+        out += `<path d="M${pad - 4} ${pad + maxH - cm}h-${len}" class="cmp-tick"/>`;
+        if (cm % 50 === 0) out += `<text x="${pad - 18}" y="${pad + maxH - cm + 5}" text-anchor="end" class="cmp-num" font-size="${fs.toFixed(1)}">${cm}</text>`;
+      }
+      return out;
+    }
+
+    function render(): void {
+      if (!selA || !selB || !sizeA || !sizeB || !front || !top || !table) return;
+      const a = getProduct(selA.value);
+      const b = getProduct(selB.value);
+      if (!a || !b) return;
+      labelSizes(selA, sizeA);
+      labelSizes(selB, sizeB);
+      const da = getSize(a.kind, sizeA.value as SizeId);
+      const db = getSize(b.kind, sizeB.value as SizeId);
+      // Front: x = width, y = height
+      const fw = Math.max(da.w, db.w);
+      const fh = Math.max(da.h, db.h);
+      const pad = Math.round(Math.max(fw, fh, da.d, db.d) * 0.16);
+      const rects = (kind: typeof a.kind, dims: typeof da, cls: string, maxH: number) =>
+        elevationRects(kind, dims).map((r) => `<rect x="${pad + r.x}" y="${pad + (maxH - dims.h) + r.y}" width="${r.w}" height="${r.h}" class="${cls}"/>`).join('');
+      front.setAttribute('viewBox', `0 0 ${fw + pad * 2} ${fh + pad * 2}`);
+      front.innerHTML = `<rect x="${pad}" y="${pad + fh}" width="${fw}" height="3" class="cmp-floor"/>${ruler(fw, fh, pad)}<g class="cmp-a">${rects(a.kind, da, 'ra', fh)}</g><g class="cmp-b">${rects(b.kind, db, 'rb', fh)}</g>`;
+      // Top: x = width, y = depth
+      const tw = Math.max(da.w, db.w);
+      const td = Math.max(da.d, db.d);
+      top.setAttribute('viewBox', `0 0 ${tw + pad * 2} ${td + pad * 2}`);
+      top.innerHTML = `${ruler(tw, td, pad)}<rect x="${pad}" y="${pad + td - da.d}" width="${da.w}" height="${da.d}" class="ra"/><rect x="${pad}" y="${pad + td - db.d}" width="${db.w}" height="${db.d}" class="rb"/>`;
+      const row = (label: string, x: number, y: number) =>
+        `<div><dt>${label}</dt><dd><span class="cmp-chip a">${x} cm</span><span class="cmp-chip b">${y} cm</span><span class="cmp-diff">${x === y ? 'iguales' : `${Math.abs(x - y)} cm ${x > y ? 'más el primero' : 'más el segundo'}`}</span></dd></div>`;
+      table.innerHTML = row('Ancho', da.w, db.w) + row('Profundidad', da.d, db.d) + row('Alto', da.h, db.h);
+      update((s) => {
+        s.compare = [a.id, b.id];
+      });
+    }
+    [selA, selB, sizeA, sizeB].forEach((el) => el.addEventListener('change', render));
+    render();
+  });
+</script>

@@ -1,0 +1,118 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Mi cuenta" view="account">
+  <div class="wrap account" data-account-view>
+    <header class="page-head">
+      <h1>Mi cuenta</h1>
+      <p class="lede">Una cuenta de demostración: tus pedidos, lo que miraste y cómo se comporta la simulación.</p>
+    </header>
+
+    <div class="account-grid">
+      <section class="acc-orders" aria-labelledby="acc-orders-h">
+        <h2 id="acc-orders-h">Pedidos</h2>
+        <ul class="acc-list" data-acc-orders aria-busy="true">
+          <li class="skeleton acc-sk" aria-hidden="true"></li>
+          <li class="skeleton acc-sk" aria-hidden="true"></li>
+        </ul>
+        <p class="muted" data-acc-none hidden>Sin pedidos todavía. <a href="/pedido">Creá uno de ejemplo</a> o comprá algo del catálogo.</p>
+
+        <h2 class="acc-sub">Vistos hace poco</h2>
+        <ul class="acc-recent" data-acc-recent></ul>
+      </section>
+
+      <aside class="acc-side">
+        <section class="acc-card" aria-labelledby="acc-profile-h">
+          <h2 id="acc-profile-h">Perfil</h2>
+          <dl class="review" data-acc-profile></dl>
+        </section>
+
+        <section class="acc-card" aria-labelledby="acc-sim-h">
+          <h2 id="acc-sim-h">Simulación en vivo</h2>
+          <p class="muted">Compras de otras personas, stock que baja y pedidos que avanzan salen de un mismo reloj.</p>
+          <dl class="review">
+            <div><dt>Reloj</dt><dd class="num" data-acc-clock>—</dd></div>
+            <div><dt>Ventas</dt><dd class="num" data-acc-sold>—</dd></div>
+          </dl>
+          <div class="acc-controls">
+            <button class="btn small" type="button" data-action="sim-toggle"><span data-acc-run>Pausar</span></button>
+            <button class="btn small ghost" type="button" data-action="sim-speed">Velocidad <span class="num" data-acc-speed>1×</span></button>
+          </div>
+          <label class="check"><input type="checkbox" data-acc-toasts /> Mostrar avisos de compras de otras personas</label>
+        </section>
+
+        <section class="acc-card danger" aria-labelledby="acc-reset-h">
+          <h2 id="acc-reset-h">Empezar de cero</h2>
+          <p class="muted">Borra carrito, favoritos, pedidos y notificaciones guardados en este navegador.</p>
+          <button class="btn ink" type="button" data-action="reset">Reiniciar demo</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { mount, escapeHtml } from '../lib/page';
+  import { getProduct } from '../data/catalog';
+  import { formatPrice } from '../lib/format';
+  import { getState, subscribe, update } from '../lib/store';
+  import { orderProgress } from '../lib/sim';
+  import { DEMO_CUSTOMER } from '../lib/orders';
+  import { simClockLabel, thumbSvg } from '../lib/ui';
+
+  mount<HTMLElement>('[data-account-view]', (root) => {
+    const $ = <T extends Element = HTMLElement>(sel: string) => root.querySelector<T>(sel);
+    const toasts = $<HTMLInputElement>('[data-acc-toasts]');
+    let ordersSig = '';
+
+    function render(): void {
+      const s = getState();
+      const list = $('[data-acc-orders]');
+      const none = $('[data-acc-none]');
+      const sig = JSON.stringify(s.orders.map((o) => [o.id, orderProgress(o).label]));
+      if (list && sig !== ordersSig) {
+        ordersSig = sig;
+        list.removeAttribute('aria-busy');
+        list.innerHTML = s.orders.map((o) => {
+          const pr = orderProgress(o);
+          const first = o.lines[0];
+          const p = first ? getProduct(first.productId) : undefined;
+          return `<li><a class="acc-order" href="/pedido?id=${o.id}">
+            <span class="thumb">${p && first ? thumbSvg(p.id, { wood: first.wood, fabric: first.fabric, size: first.size }) : ''}</span>
+            <span><strong>${o.id}</strong> · ${escapeHtml(p?.name ?? '')}${o.lines.length > 1 ? ` y ${o.lines.length - 1} más` : ''}<small>${escapeHtml(pr.label)}</small></span>
+            <span class="num serif">${formatPrice(o.total)}</span>
+            <span class="acc-bar" aria-hidden="true"><span style="transform:scaleX(${pr.phase === 'production' ? pr.production * 0.8 : pr.phase === 'shipping' ? 0.8 + pr.shipping * 0.2 : 1})"></span></span>
+          </a></li>`;
+        }).join('');
+        if (none) none.hidden = s.orders.length > 0;
+      }
+      const recent = $('[data-acc-recent]');
+      if (recent) {
+        const html = s.recent.map((id) => {
+          const p = getProduct(id);
+          return p ? `<li><a href="/producto/${p.slug}"><span class="thumb">${thumbSvg(p.id)}</span>${escapeHtml(p.name)}</a></li>` : '';
+        }).join('') || '<li class="muted">Nada todavía.</li>';
+        if (recent.innerHTML !== html) recent.innerHTML = html;
+      }
+      const clock = $('[data-acc-clock]');
+      if (clock) clock.textContent = `${simClockLabel(s.sim.clock)} · ${s.sim.running ? 'en marcha' : 'en pausa'}`;
+      const sold = $('[data-acc-sold]');
+      if (sold) sold.textContent = `${Object.values(s.sim.sold).reduce((a, b) => a + b, 0)} muebles vendidos desde el día 1`;
+      const run = $('[data-acc-run]');
+      if (run) run.textContent = s.sim.running ? 'Pausar' : 'Reanudar';
+      const speed = $('[data-acc-speed]');
+      if (speed) speed.textContent = `${s.sim.speed}×`;
+      if (toasts) toasts.checked = s.toasts;
+    }
+
+    const profile = $('[data-acc-profile]');
+    if (profile) profile.innerHTML = [['Nombre', DEMO_CUSTOMER.name], ['Email', DEMO_CUSTOMER.email], ['Teléfono', DEMO_CUSTOMER.phone], ['Dirección', `${DEMO_CUSTOMER.address}, ${DEMO_CUSTOMER.city}`]].map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHtml(v ?? '')}</dd></div>`).join('');
+    toasts?.addEventListener('change', () => update((s) => { s.toasts = toasts.checked; }));
+    const t = window.setTimeout(render, 260);
+    const unsub = subscribe(render);
+    return () => {
+      window.clearTimeout(t);
+      unsub();
+    };
+  });
+</script>

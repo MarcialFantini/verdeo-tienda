@@ -1,0 +1,217 @@
+---
+/**
+ * "Producción": the days of fabrication as a line of illustrated stages with simulated progress,
+ * next to the workshop order printed as a slip. In order mode it follows a real (simulated) order.
+ */
+import { stagePlan } from '../data/catalog';
+
+interface Props {
+  days: number;
+  title: string;
+  id: string;
+  lede?: string;
+  orderId?: string;
+}
+const { days, title, id, lede = 'Cada mueble se hace a pedido en el taller de Yerba Buena. Seguí el avance día por día: nada sale antes de pasar por las cinco mesas.', orderId } = Astro.props;
+const plan = stagePlan(days);
+---
+<div class="production" data-production data-days={days} data-order={orderId ?? ''}>
+  <div class="production-inner wrap">
+    <div class="production-copy">
+      <h2 id={id}>{title}</h2>
+      <p class="lede">{lede}</p>
+      <p class="day-counter serif num" aria-live="off"><span data-day>Día 1</span> <span class="of">de {days}</span></p>
+      <p class="stage-now" data-stage-now>{plan[0]?.name}: {plan[0]?.text}</p>
+
+      <ol class="stage-line" aria-label="Etapas de fabricación">
+        {plan.map((st) => (
+          <li class="stage" data-stage={st.id} style={`--from:${(st.from - 1) / days};--to:${st.to / days}`}>
+            <svg viewBox="0 0 120 84" class="stage-art" aria-hidden="true">
+              {st.id === 'corte' && (
+                <g>
+                  <rect x="6" y="50" width="76" height="12" class="a-wood" />
+                  <g class="saw"><polygon points="92,38 96,47 106,46 100,54 106,62 96,61 92,70 88,61 78,62 84,54 78,46 88,47" class="a-dark" /><circle cx="92" cy="54" r="4" class="a-paper" /></g>
+                  <rect x="6" y="66" width="108" height="6" class="a-bench" />
+                </g>
+              )}
+              {st.id === 'lijado' && (
+                <g>
+                  <rect x="10" y="50" width="100" height="12" class="a-wood" />
+                  <g class="sander"><rect x="30" y="36" width="30" height="14" class="a-dark" /><rect x="40" y="26" width="10" height="10" class="a-dark" /></g>
+                  <rect x="6" y="66" width="108" height="6" class="a-bench" />
+                </g>
+              )}
+              {st.id === 'armado' && (
+                <g>
+                  <rect x="30" y="34" width="6" height="38" class="a-wood-dark" />
+                  <rect x="84" y="34" width="6" height="38" class="a-wood-dark" />
+                  <rect x="26" y="30" width="68" height="7" class="a-wood" />
+                  <g class="drop"><rect x="30" y="8" width="6" height="22" class="a-wood-dark" /><rect x="30" y="8" width="38" height="6" class="a-wood" /></g>
+                  <rect x="6" y="72" width="108" height="6" class="a-bench" />
+                </g>
+              )}
+              {st.id === 'laca' && (
+                <g>
+                  <rect x="10" y="44" width="70" height="20" class="a-wood" />
+                  <rect x="10" y="44" width="70" height="20" class="sheen" />
+                  <g class="spray"><rect x="90" y="30" width="14" height="30" class="a-green" /><rect x="94" y="24" width="6" height="6" class="a-dark" /></g>
+                  <rect x="6" y="66" width="108" height="6" class="a-bench" />
+                </g>
+              )}
+              {st.id === 'embalaje' && (
+                <g>
+                  <rect x="26" y="34" width="68" height="38" class="a-box" />
+                  <rect x="26" y="34" width="68" height="6" class="a-box-dark" />
+                  <g class="flap"><rect x="26" y="20" width="68" height="14" class="a-box-light" /></g>
+                  <rect x="60" y="50" width="26" height="14" class="a-paper" />
+                </g>
+              )}
+            </svg>
+            <span class="stage-name">{st.name}</span>
+            <span class="stage-days num">{st.from === st.to ? `Día ${st.from}` : `Días ${st.from} a ${st.to}`}</span>
+          </li>
+        ))}
+      </ol>
+      <div class="progress" aria-hidden="true"><span data-progress></span></div>
+
+      <div class="production-controls">
+        {orderId ? (
+          <button class="btn small ghost-on-green" type="button" data-advance>Adelantar un día</button>
+        ) : (
+          <>
+            <button class="btn small ghost-on-green" type="button" data-play aria-pressed="false">
+              <span data-play-label>Pausar</span>
+            </button>
+            <button class="btn small ghost-on-green" type="button" data-rate>Velocidad <span class="num" data-rate-label>1×</span></button>
+          </>
+        )}
+      </div>
+    </div>
+
+    <div class="slip" role="group" aria-label="Orden de taller">
+      <p class="slip-head"><strong>Orden de taller</strong><span>Río Luján · Yerba Buena, Tucumán</span></p>
+      {plan.map((st) => (
+        <div class="slip-group" data-slip={st.id}>
+          <h3>{st.from === st.to ? `Día ${st.from}` : `Días ${st.from} a ${st.to}`}</h3>
+          <p class="slip-row"><span>{st.name}</span><span class="lead" aria-hidden="true"></span><span class="num">{st.to - st.from + 1} {st.to - st.from + 1 === 1 ? 'día' : 'días'}</span></p>
+          <p class="slip-note">{st.text}</p>
+        </div>
+      ))}
+      <p class="slip-total"><span>Listo para despachar</span><span class="num">{days} días</span></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { mount, prefersReducedMotion, whenVisible, isShowcase } from '../lib/page';
+  import { stagePlan } from '../data/catalog';
+  import { getState } from '../lib/store';
+  import { advance, onTick, orderProgress } from '../lib/sim';
+
+  mount<HTMLElement>('[data-production]', (root) => {
+    const days = Number(root.dataset['days'] ?? 15);
+    const orderId = root.dataset['order'] ?? '';
+    const plan = stagePlan(days);
+    const dayEl = root.querySelector<HTMLElement>('[data-day]');
+    const nowEl = root.querySelector<HTMLElement>('[data-stage-now]');
+    const bar = root.querySelector<HTMLElement>('[data-progress]');
+    const stages = Array.from(root.querySelectorAll<HTMLElement>('[data-stage]'));
+    const slips = Array.from(root.querySelectorAll<HTMLElement>('[data-slip]'));
+    const reduced = prefersReducedMotion();
+
+    function show(progress: number): void {
+      const p = Math.min(1, Math.max(0, progress));
+      const day = Math.min(days, Math.floor(p * days) + 1);
+      const doneAll = p >= 1;
+      const index = doneAll ? plan.length : Math.max(0, plan.findIndex((st) => day >= st.from && day <= st.to));
+      if (dayEl) dayEl.textContent = doneAll ? 'Listo' : `Día ${day}`;
+      const current = plan[index];
+      if (nowEl) nowEl.textContent = doneAll ? 'Revisado, embalado y listo para despachar.' : `${current?.name}: ${current?.text}`;
+      if (bar) bar.style.transform = `scaleX(${p})`;
+      stages.forEach((el, i) => {
+        el.classList.toggle('done', i < index);
+        el.classList.toggle('active', i === index);
+      });
+      slips.forEach((el, i) => {
+        el.classList.toggle('done', i < index);
+        el.classList.toggle('active', i === index);
+      });
+      root.classList.toggle('complete', doneAll);
+    }
+
+    if (orderId) {
+      const render = () => {
+        const order = getState().orders.find((o) => o.id === orderId);
+        if (!order) return;
+        const pr = orderProgress(order);
+        show(pr.phase === 'production' ? pr.production : 1);
+      };
+      root.querySelector('[data-advance]')?.addEventListener('click', () => advance(24));
+      render();
+      return onTick(render);
+    }
+
+    // Demo loop: a day every 700 ms, hold at the end, restart.
+    let progress = reduced ? 7 / days : 0;
+    let playing = !reduced && !isShowcase();
+    let rate = 1;
+    let raf = 0;
+    let last = 0;
+    let hold = 0;
+    const playBtn = root.querySelector<HTMLButtonElement>('[data-play]');
+    const playLabel = root.querySelector<HTMLElement>('[data-play-label]');
+    const rateBtn = root.querySelector<HTMLButtonElement>('[data-rate]');
+    const rateLabel = root.querySelector<HTMLElement>('[data-rate-label]');
+    const syncButtons = () => {
+      playBtn?.setAttribute('aria-pressed', String(!playing));
+      if (playLabel) playLabel.textContent = playing ? 'Pausar' : 'Reanudar';
+      if (rateLabel) rateLabel.textContent = `${rate}×`;
+      root.classList.toggle('paused', !playing);
+    };
+    const frame = (t: number) => {
+      const dt = last ? Math.min(100, t - last) : 0;
+      last = t;
+      if (playing) {
+        if (progress >= 1) {
+          hold += dt;
+          if (hold > 1800) {
+            progress = 0;
+            hold = 0;
+          }
+        } else progress = Math.min(1, progress + (dt / 700 / days) * rate);
+        show(progress);
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    playBtn?.addEventListener('click', () => {
+      playing = !playing;
+      syncButtons();
+    });
+    rateBtn?.addEventListener('click', () => {
+      rate = rate === 1 ? 2 : rate === 2 ? 4 : 1;
+      syncButtons();
+    });
+    root.addEventListener('production:set', (event) => {
+      const detail = (event as CustomEvent<{ progress: number; playing?: boolean }>).detail;
+      progress = detail.progress;
+      if (detail.playing !== undefined) playing = detail.playing;
+      syncButtons();
+      show(progress);
+    });
+    show(progress);
+    syncButtons();
+    let visible = false;
+    const io = new IntersectionObserver((entries) => {
+      visible = entries.some((e) => e.isIntersecting);
+      cancelAnimationFrame(raf);
+      last = 0;
+      if (visible) raf = requestAnimationFrame(frame);
+    });
+    const stop = whenVisible(root, () => io.observe(root), '0px');
+    return () => {
+      stop();
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  });
+</script>

@@ -1,0 +1,118 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Furniture from '../../components/Furniture.astro';
+import Configurator from '../../components/Configurator.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import RoomScene from '../../components/RoomScene.astro';
+import ProductionSlip from '../../components/ProductionSlip.astro';
+import { PRODUCTS, ROOMS, relatedProducts, type Product } from '../../data/catalog';
+import { PROVINCES } from '../../data/argentina';
+
+export function getStaticPaths() {
+  return PRODUCTS.map((product) => ({ params: { slug: product.slug }, props: { product } }));
+}
+
+interface Props {
+  product: Product;
+}
+const { product } = Astro.props;
+const related = relatedProducts(product, 4);
+---
+<Layout title={product.name} view="product" description={`${product.name}: ${product.description}`}>
+  <div class="pdp" data-sync-url data-pdp data-product={product.id}>
+    <div class="pdp-stage-col">
+      <div class="pdp-stage" id="pdp-stage" data-wood={product.defaultWood} data-fabric={product.defaultFabric ?? ''}>
+        <Furniture product={product} vt pad={16} />
+        <span class="stock-flag" data-stock-for={product.id} hidden></span>
+      </div>
+    </div>
+
+    <div class="pdp-info">
+      <nav class="crumbs" aria-label="Ubicación">
+        <a href="/catalogo">Catálogo</a>
+        <span aria-hidden="true">/</span>
+        <a href={`/catalogo?ambiente=${product.room}`}>{ROOMS[product.room]}</a>
+      </nav>
+      <h1 class="pdp-name">{product.name}</h1>
+      <p class="pdp-desc">{product.description}</p>
+
+      <Configurator product={product} stage="#pdp-stage" id="pdp" />
+
+      <div class="pdp-more">
+        <button class="link-btn" type="button" data-compare={product.id}>
+          Comparar medidas con otro mueble
+        </button>
+        <label class="field ship-field">
+          <span class="label">Envío desde el taller de Tucumán</span>
+          <select data-ship-province>
+            {PROVINCES.map((p) => <option value={p.id}>{p.name}</option>)}
+          </select>
+          <span class="hint" data-ship-quote aria-live="polite">Elegí tu provincia para ver plazo y costo.</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <section class="pdp-section wrap" aria-labelledby="room-title">
+    <div class="section-head">
+      <h2 id="room-title">En tu ambiente</h2>
+      <p class="lede">Arrastralo por la habitación o movelo con las flechas. La regla está en centímetros reales.</p>
+    </div>
+    <RoomScene product={product} id="pdp-room" />
+  </section>
+
+  <section class="pdp-section" aria-labelledby="prod-title">
+    <ProductionSlip days={product.days} title={`Así se fabrica tu ${product.kindLabel.toLowerCase()}`} id="prod-title" />
+  </section>
+
+  <section class="pdp-section wrap" aria-labelledby="related-title">
+    <div class="section-head">
+      <h2 id="related-title">Para el mismo ambiente</h2>
+    </div>
+    <div class="grid related">
+      {related.map((p) => <ProductCard product={p} />)}
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+  import { mount } from '../../lib/page';
+  import { getProduct } from '../../data/catalog';
+  import { shippingQuote } from '../../data/argentina';
+  import { formatPrice } from '../../lib/format';
+  import { getState, rememberRecent, update } from '../../lib/store';
+
+  mount<HTMLElement>('[data-pdp]', (root) => {
+    const product = getProduct(root.dataset['product'] ?? '');
+    if (!product) return;
+    rememberRecent(product.id);
+
+    const select = root.querySelector<HTMLSelectElement>('[data-ship-province]');
+    const quote = root.querySelector<HTMLElement>('[data-ship-quote]');
+    const renderQuote = () => {
+      if (!select || !quote) return;
+      const q = shippingQuote(select.value);
+      quote.textContent = q.cost === 0
+        ? `Retiro sin cargo en el taller o entrega en ${q.days} día dentro de Tucumán.`
+        : `Llega a ${q.province.name} ${q.days} días después de fabricarse. Envío ${formatPrice(q.cost)}.`;
+    };
+    if (select) {
+      select.value = getState().province;
+      select.addEventListener('change', () => {
+        update((s) => {
+          s.province = select.value;
+        });
+        renderQuote();
+      });
+    }
+    renderQuote();
+
+    root.querySelector<HTMLButtonElement>('[data-compare]')?.addEventListener('click', () => {
+      update((s) => {
+        s.compare = [product.id, s.compare[0] && s.compare[0] !== product.id ? s.compare[0] : s.compare[1]];
+      });
+      void navigate('/comparar');
+    });
+  });
+</script>
